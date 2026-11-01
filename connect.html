@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- STRICT AIRGAP CSP: Hugging Face and jsDelivr only. No GitHub or unauthorized CDNs. -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' https://cdn.jsdelivr.net; connect-src 'self' https://huggingface.co https://*.huggingface.co https://*.hf.co https://cdn.jsdelivr.net https://raw.githubusercontent.com data: blob:; worker-src 'self' blob:; style-src 'self' 'unsafe-inline'; img-src 'self' data:; base-uri 'none'; form-action 'none'">
+<title>bringYourOwnBrain.org — Local AI Hub</title>
+<style>
+  :root { --bg:#020617; --card:#0f172a; --line:#1e293b; --text:#f1f5f9; --muted:#94a3b8; --green:#10b981; --green-d:#059669; }
+  * { box-sizing: border-box; }
+  html, body { margin:0; height:100%; background:transparent; color:var(--text);
+    font:14px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif; }
+  button { font:inherit; cursor:pointer; border:0; border-radius:10px; }
+  .green { background:var(--green); color:#04110c; font-weight:700; padding:10px 16px; }
+  .green:hover { background:var(--green-d); color:#fff; }
+  .green:disabled { opacity:.5; cursor:default; }
+  .ghost { background:none; border:1px solid #475569; color:var(--muted); padding:8px 12px; font-size:12px; }
+  .ghost:hover { border-color:#94a3b8; color:#fff; }
+  .danger:hover { border-color:#ef4444; color:#fca5a5; }
+
+  #compact { height:100%; display:flex; align-items:center; justify-content:center; }
+  #btnConnect { width:100%; height:100%; border-radius:12px; font-size:15px; }
+  #btnConnect.connected { background:#06281e; color:#34d399; border:1px solid var(--green); }
+
+  #wizard { display:none; position:fixed; inset:0; background:var(--bg); overflow:auto;
+    align-items:center; justify-content:center; padding:16px; }
+  body.expanded #compact { display:none; }
+  body.expanded #wizard { display:flex; }
+  .card { width:100%; max-width:440px; background:var(--card); border:1px solid var(--line); border-radius:14px; padding:22px; }
+  .brand { font-weight:700; font-size:15px; margin-bottom:14px; }
+  .brand small { font-weight:600; font-size:10px; color:#34d399; border:1px solid #10b98155; background:#10b98122; border-radius:4px; padding:2px 6px; margin-left:6px; }
+  .dots { display:flex; gap:6px; margin-bottom:16px; }
+  .dots i { flex:1; height:4px; border-radius:2px; background:var(--line); }
+  .dots i.on { background:var(--green); }
+  h2 { margin:0 0 6px; font-size:16px; }
+  p { margin:0 0 12px; color:var(--muted); }
+  ul { margin:0 0 14px; padding-left:18px; color:var(--muted); }
+  li { margin-bottom:4px; }
+  section { display:none; }
+  .row { display:flex; gap:8px; flex-wrap:wrap; margin-top:10px; }
+  #captchaBox { min-height:78px; margin:12px 0; }
+  .notice { display:none; margin-bottom:12px; padding:10px 12px; border-radius:8px; font-size:13px; }
+  .notice.error { background:#450a0a; border:1px solid #7f1d1d; color:#fca5a5; }
+  .notice.success { background:#06281e; border:1px solid #10b98155; color:#34d399; }
+  .big { width:100%; padding:14px 16px; text-align:left; font-size:15px; }
+  .big small { display:block; font-weight:500; font-size:12px; opacity:.8; margin-top:2px; }
+  .bar { height:8px; background:var(--line); border-radius:4px; overflow:hidden; margin:10px 0 6px; }
+  .bar > div { height:100%; width:3%; background:var(--green); transition:width .2s; }
+  .mono { font-family:ui-monospace,monospace; font-size:12px; color:var(--muted); }
+</style>
+</head>
+<body>
+
+<div id="compact"><button id="btnConnect" class="green">Connect local AI</button></div>
+
+<div id="wizard">
+  <div class="card">
+    <div class="brand">⚡ bringYourOwnBrain.org <small>Local AI Hub</small></div>
+    <div class="dots" id="dots"><i></i><i></i><i></i><i></i></div>
+    <div id="notice" class="notice"></div>
+
+    <section id="s0">
+      <h2>⚠️ Before you connect</h2>
+      <ul>
+        <li>This is a small AI model running on <b>your device</b>. It can be <b>wrong</b>, make things up (“hallucinate”), and sometimes say strange, inappropriate or offensive things.</li>
+        <li>Don’t rely on it for facts, or for medical, legal, financial or safety decisions, and don’t share private or sensitive information with it.</li>
+        <li>This AI feature is intended for <b>mature audiences (18+)</b>. Under our Terms of Service (coming soon), people under 18 may not connect unless a parent or guardian has reviewed this notice and consents.</li>
+      </ul>
+      <div class="row">
+        <button class="green" id="btnAgree">I agree (I’m 18+, or I have parent/guardian consent)</button>
+        <button class="ghost" id="btnDisagree">Cancel</button>
+      </div>
+    </section>
+
+    <section id="s1">
+      <h2>Step 1 of 3 · Allow this site</h2>
+      <div id="captchaWrap" style="display:none">
+        <p>Quick check before your browser connects to local AI.</p>
+        <div id="captchaBox"></div>
+        <div class="row"><button class="green" id="btnCaptchaRetry" style="display:none">Retry</button></div>
+      </div>
+      <div id="consentWrap">
+        <p><b id="consentOrigin">This site</b> wants to use the AI model on <b>your device</b>. Nothing you type leaves your browser.</p>
+        <div class="row">
+          <button class="green" id="btnConsentAllow">Allow</button>
+          <button class="ghost" id="btnConsentDeny">Not now</button>
+        </div>
+        <p class="mono" style="margin-top:10px">Your choice is remembered for this site.</p>
+      </div>
+      <div class="row"><button class="ghost" id="btnCancel">Cancel</button></div>
+    </section>
+
+    <section id="s2">
+      <h2>Step 2 of 3 · What happens next</h2>
+      <p>Step 3 will ask your browser for <b>storage access</b>. Why:</p>
+      <ul>
+        <li>The AI model downloads once from Hugging Face and is saved on <b>your device</b>.</li>
+        <li>Storage access lets every game you play reuse that same download instead of fetching it again.</li>
+        <li>Nothing you type is sent to a server. The model runs entirely in your browser.</li>
+      </ul>
+      <div class="row"><button class="green" id="btnS2">Continue</button></div>
+    </section>
+
+    <section id="s3">
+      <h2>Step 3 of 3 · Allow storage access</h2>
+      <p id="s3msg">Checking…</p>
+      <div class="row">
+        <button class="green" id="btnAllow" style="display:none">Allow storage access</button>
+        <button class="green" id="btnS3Continue" style="display:none">Continue</button>
+      </div>
+    </section>
+
+    <section id="s4">
+      <h2>Choose your model</h2>
+      <p>One model for now. It runs on WebGPU when your device has it, otherwise on CPU.</p>
+      <button class="green big" id="btnModel">Qwen2.5 0.5B Instruct
+        <small>Small chat model for characters &amp; dialogue · runs on your GPU when possible, otherwise your CPU · saved on your device</small>
+      </button>
+    </section>
+
+    <section id="s5">
+      <h2 id="pTitle">Loading…</h2>
+      <div class="bar"><div id="pBar"></div></div>
+      <div class="mono"><span id="pPct">…</span> · <span id="pDetail">Starting engine…</span></div>
+    </section>
+
+    <section id="s6">
+      <h2>✅ Connected</h2>
+      <p id="readyMsg"></p>
+      <div class="row">
+        <button class="green" id="btnClose">Back to game</button>
+        <button class="ghost" id="btnForget">Forget this site</button>
+        <button class="ghost danger" id="btnUninstall">Uninstall model</button>
+      </div>
+    </section>
+  </div>
+</div>
+
+<script type="module">
+import { loadTier, unloadActiveEngine, getEngineInfo, setSharedCaches } from './offscreen.js';
+
+const REQUIRE_CAPTCHA = false;
+const RECAPTCHA_SITE_KEY = '6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI';
+const MODEL_NAME = 'Qwen2.5 0.5B Instruct';
+
+const KEY_ACK = 'byob_notice_ack', ACK_VERSION = 1;   // bump ACK_VERSION whenever the notice text changes materially
+const KEY_MODEL = 'byob_installed_model', KEY_ONB = 'byob_onboarded', KEY_TIER = 'byob_activeTier', WIZ = 'byob_wiz', KEY_AUTH = 'byob_authorized_origins';
+const $ = (id) => document.getElementById(id);
+const inIframe = window.top !== window;
+
+let pendingOrigin = null, parentOrigin = null, authOk = false, storageOk = false, ready = false, busy = false, manageOpen = false;
+
+globalThis.BYOB_GATE = (e) => ready && authOk && e.origin === (inIframe ? parentOrigin : location.origin);
+
+// ---- Shared-storage layer -------------------------------------------------
+// Chrome: document.hasStorageAccess() is TRUE whenever 3rd-party cookies are allowed, but localStorage /
+// Cache API stay PARTITIONED per game site. The real unpartitioned buckets only come from the
+// StorageAccessHandle returned by requestStorageAccess({all:true}). Safari/Firefox have no handle API;
+// a plain grant (+ reload) switches the normal document storage to the shared bucket.
+const HANDLE_API = typeof window.StorageAccessHandle !== 'undefined' || 'StorageAccessHandle' in window;
+let sharedHandle = null;
+const kv = () => (sharedHandle ? sharedHandle.localStorage : localStorage);
+const load = (k) => { try { return JSON.parse(kv().getItem(k)); } catch { return null; } };
+const save = (k, v) => { try { kv().setItem(k, JSON.stringify(v)); } catch {} };
+const drop = (k) => { try { kv().removeItem(k); } catch {} };
+function useHandle(h) {
+  sharedHandle = h; setSharedCaches(h.caches);
+  // WebLLM reads the global caches/indexedDB; point them at the shared (unpartitioned) buckets.
+  try { Object.defineProperty(window, 'caches', { configurable: true, get: () => h.caches }); } catch {}
+  try { Object.defineProperty(window, 'indexedDB', { configurable: true, get: () => h.indexedDB }); } catch {}
+}
+// Only succeeds without a click if this browser already remembers a grant for this game site.
+async function trySilentHandle() {
+  if (!inIframe || sharedHandle) return !!sharedHandle;
+  try {
+    const p = await navigator.permissions.query({ name: 'storage-access' });
+    if (p.state !== 'granted') return false;
+    // FIXED: Use the exact Privacy Sandbox dictionary
+    const h = await document.requestStorageAccess({ caches: true, localStorage: true, indexedDB: true });
+    if (h && h.localStorage && h.caches) { useHandle(h); return true; }
+  } catch {}
+  return false;
+}
+
+const getInstalled = () => load(KEY_MODEL);
+const hasAck = () => { const a = load(KEY_ACK); return !!a && a.v === ACK_VERSION; };
+const saveAck = () => save(KEY_ACK, { v: ACK_VERSION, t: Date.now() });
+const siteOrigin = () => (inIframe ? parentOrigin : location.origin);
+const isAuthorized = (o) => !!o && (load(KEY_AUTH) || []).includes(o);
+const authorize = (o) => { const l = (load(KEY_AUTH) || []).filter((x) => x !== o); l.unshift(o); save(KEY_AUTH, l); };
+const forget = (o) => save(KEY_AUTH, (load(KEY_AUTH) || []).filter((x) => x !== o));
+const readWiz = () => { try { const w = JSON.parse(sessionStorage.getItem(WIZ) || 'null'); return w && Date.now() - w.ts < 600000 ? w : null; } catch { return null; } };
+const writeWiz = (o) => { try { sessionStorage.setItem(WIZ, JSON.stringify({ ...o, ts: Date.now() })); } catch {} };
+const clearWiz = () => { try { sessionStorage.removeItem(WIZ); } catch {} };
+
+function toParent(msg) { if (inIframe && parentOrigin) window.parent.postMessage({ ...msg }, parentOrigin); }
+function show(n) {
+  for (let i = 0; i <= 6; i++) $('s' + i).style.display = i === n ? 'block' : 'none';
+  [...$('dots').children].forEach((d, i) => d.className = i < Math.min(n, 4) ? 'on' : '');
+}
+function notice(t, type = 'error') { const el = $('notice'); el.textContent = t; el.className = 'notice ' + type; el.style.display = 'block'; }
+const hideNotice = () => { $('notice').style.display = 'none'; };
+
+function expand() { document.body.classList.add('expanded'); toParent({ type: 'BYOB_UI', action: 'expand' }); }
+function collapse() { if (!inIframe) return; document.body.classList.remove('expanded'); manageOpen = false; toParent({ type: 'BYOB_UI', action: 'collapse' }); }
+function refreshCompact() {
+  const b = $('btnConnect');
+  b.textContent = ready ? '✅ Local AI connected' : 'Connect local AI';
+  b.className = ready ? 'connected' : 'green';
+}
+
+async function hasStorageAccess() {
+  if (!inIframe) return true;
+  if (sharedHandle) return true;
+  // If we are on Chrome/Edge and don't have sharedHandle, we are in the partition trap!
+  if (navigator.userAgent.includes('Chrome') || navigator.userAgent.includes('Edge')) {
+    return false;
+  }
+  try { return await document.hasStorageAccess(); } catch { return false; }
+}
+
+window.addEventListener('message', (e) => {
+  if (!inIframe || e.source !== window.parent || !e.data) return;
+  if (e.data.type === 'BYOB_HELLO') {
+    parentOrigin = e.origin;
+    toParent({ type: 'BYOB_UI', action: document.body.classList.contains('expanded') ? 'expand' : 'collapse' });
+    toParent({ type: 'BYOB_STATE', state: ready ? 'ready' : 'idle' });
+  } else if (e.data.type === 'BYOB_OPEN' && e.origin === parentOrigin && !document.body.classList.contains('expanded')) {
+    openFlow();   // the host page's own Connect button was clicked: start the flow (its first step is the notice, which needs a click here)
+  }
+});
+
+let widgetId = null;
+function loadRecaptcha() {
+  return new Promise((res, rej) => {
+    if (window.grecaptcha && window.grecaptcha.render) return res();
+    window.byobCaptchaLoaded = () => res();
+    const s = document.createElement('script');
+    s.src = 'https://www.google.com/recaptcha/api.js?render=explicit&onload=byobCaptchaLoaded';
+    s.async = true;
+    s.onerror = () => rej(new Error('Could not load reCAPTCHA.'));
+    document.head.append(s);
+  });
+}
+
+async function startFlow() {
+  authOk = false; hideNotice();
+  if (!hasAck()) { show(0); return; }   // safety / 18+ notice comes before anything else
+  show(1);
+  $('consentWrap').style.display = 'none'; $('captchaWrap').style.display = 'none';
+  if (!REQUIRE_CAPTCHA) return consentStage();
+  $('captchaWrap').style.display = 'block'; $('btnCaptchaRetry').style.display = 'none';
+  try {
+    await loadRecaptcha();
+    if (widgetId !== null) window.grecaptcha.reset(widgetId);
+    else widgetId = window.grecaptcha.render('captchaBox', {
+      sitekey: RECAPTCHA_SITE_KEY, theme: 'dark',
+      callback: () => setTimeout(consentStage, 400)
+    });
+  } catch (e) { notice(e.message); $('btnCaptchaRetry').style.display = 'inline-block'; }
+}
+
+function consentStage() {
+  const o = siteOrigin();
+  if (!o) { notice('Waiting for game page. Try again in a moment.'); show(1); return; }
+  if (isAuthorized(o)) return grant(o);
+  $('captchaWrap').style.display = 'none';
+  $('consentOrigin').textContent = o;
+  $('consentWrap').style.display = 'block';
+}
+
+async function grant(o) {
+  authOk = true; pendingOrigin = o; authorize(o);
+  storageOk = await hasStorageAccess();
+  if (load(KEY_ONB) && getInstalled() && storageOk) return connectModel(false);
+  show(2);
+}
+
+async function enterStep3() {
+  show(3); hideNotice();
+  storageOk = await hasStorageAccess();
+  $('btnAllow').style.display = storageOk ? 'none' : 'inline-block';
+  $('btnS3Continue').style.display = storageOk ? 'inline-block' : 'none';
+  $('s3msg').textContent = storageOk
+    ? '✅ Storage access verified.'
+    : 'Click the button — your browser will ask permission. This lets your downloaded model be shared across games.';
+}
+
+$('btnAllow').addEventListener('click', async () => {
+  try {
+    try {
+      const h = await document.requestStorageAccess({ caches: true, localStorage: true, indexedDB: true });
+      if (h && h.localStorage && h.caches) {
+        useHandle(h);
+        if (pendingOrigin) authorize(pendingOrigin);
+        saveAck();
+        storageOk = true;
+        notice('✅ Storage access verified.', 'success');
+        setTimeout(afterStorage, 600);
+        return;
+      }
+    } catch (e) {}
+
+    await document.requestStorageAccess();
+    writeWiz({ auth: true, origin: pendingOrigin, ack: true });
+    location.reload();
+  } catch (err) { notice('Storage access was not granted (' + ((err && err.name) || 'error') + '). Tap “Allow storage access” again.'); }
+});
+
+function afterStorage() { getInstalled() && load(KEY_ONB) ? connectModel(false) : show(4); }
+
+async function connectModel(installing) {
+  if (busy) return; busy = true; hideNotice(); show(5);
+  $('pTitle').textContent = (installing ? 'Installing ' : 'Loading ') + MODEL_NAME + '…';
+  let shown = 0; const files = {}, mb = (n) => (n / 1048576).toFixed(0);
+  const setPct = (p, t) => {
+    p = Math.max(shown, Math.min(99, p)); shown = p;
+    $('pBar').style.width = p + '%'; $('pPct').textContent = p + '%'; if (t) $('pDetail').textContent = t;
+  };
+
+  try {
+    try { localStorage.setItem(KEY_TIER, 'micro'); } catch {}
+    await loadTier('micro', (i) => {
+      if (i && i.status === 'pct') { setPct(i.pct, i.text); return; }   // GPU engine (WebLLM)
+      if (!i || !i.file) return;
+      files[i.file] ||= { l: 0, t: 0 };
+      if (i.status === 'progress') { files[i.file].l = i.loaded || 0; files[i.file].t = i.total || 0; }
+      let big = null; for (const f of Object.values(files)) if (!big || f.t > big.t) big = f;
+      if (big && big.t > 1048576) {
+        if (big.l >= big.t) setPct(99, 'Building engine in memory…');
+        else setPct(Math.floor(big.l / big.t * 100), (installing ? 'Downloading ' : 'Loading ') + mb(big.l) + 'MB / ' + mb(big.t) + 'MB');
+      }
+    });
+
+    const info = getEngineInfo();
+    save(KEY_MODEL, { tier: 'micro', name: MODEL_NAME, device: info.device, installedAt: (getInstalled() || {}).installedAt || Date.now() });
+    save(KEY_ONB, 1);
+    ready = true; refreshCompact(); showReady();
+    toParent({ type: 'BYOB_STATE', state: 'ready' });
+    setTimeout(() => { if (ready && !manageOpen) collapse(); }, installing ? 1500 : 500);
+  } catch (e) {
+    notice((e && e.message) || String(e)); show(4);
+    toParent({ type: 'BYOB_STATE', state: 'error', message: (e && e.message) || String(e) });
+  } finally { busy = false; }
+}
+
+function showReady() {
+  const d = getEngineInfo().device;
+  $('readyMsg').textContent = MODEL_NAME + ' is running on your ' + (d === 'webgpu' ? 'GPU (WebGPU)' : 'CPU (WASM)') + '. Games can now talk to it.';
+  show(6);
+}
+
+// Wiring
+async function openFlow() {
+  expand();
+  await trySilentHandle();
+  if (ready) { manageOpen = true; showReady(); } else startFlow();
+}
+$('btnConnect').addEventListener('click', openFlow);
+$('btnAgree').addEventListener('click', () => { saveAck(); startFlow(); });
+$('btnDisagree').addEventListener('click', () => { collapse(); toParent({ type: 'BYOB_STATE', state: 'denied' }); });
+$('btnCancel').addEventListener('click', collapse);
+$('btnCaptchaRetry').addEventListener('click', startFlow);
+$('btnConsentAllow').addEventListener('click', () => grant(siteOrigin()));
+$('btnConsentDeny').addEventListener('click', () => { collapse(); toParent({ type: 'BYOB_STATE', state: 'denied' }); });
+$('btnForget').addEventListener('click', () => { forget(siteOrigin()); ready = false; authOk = false; location.reload(); });
+$('btnS2').addEventListener('click', enterStep3);
+$('btnS3Continue').addEventListener('click', afterStorage);
+$('btnModel').addEventListener('click', () => connectModel(true));
+$('btnClose').addEventListener('click', collapse);
+$('btnUninstall').addEventListener('click', async () => {
+  ready = false; authOk = false;
+  await unloadActiveEngine();
+  try { 
+    const cs = sharedHandle ? sharedHandle.caches : caches; 
+    for (const k of await cs.keys()) {
+      if (/transformers|byob|webllm|web-llm|qwen|mlc/i.test(k)) await cs.delete(k);
+    } 
+  } catch {}
+  try { 
+    for (const d of (await indexedDB.databases?.()) || []) {
+      if (/transformers|onnx|webllm|web-llm|mlc/i.test(d.name || '')) indexedDB.deleteDatabase(d.name);
+    } 
+  } catch {}
+  drop(KEY_MODEL); drop(KEY_ONB); drop(KEY_AUTH); clearWiz();
+  location.reload();
+});
+
+(async () => {
+  await trySilentHandle();
+  refreshCompact();
+  const wiz = readWiz();
+  if (wiz && wiz.auth) {
+    clearWiz(); authOk = true; pendingOrigin = wiz.origin || null; document.body.classList.add('expanded');
+    if (wiz.ack) saveAck();   // storage just switched buckets: re-save the acknowledgement
+    storageOk = await hasStorageAccess();
+    if (storageOk) { if (pendingOrigin) authorize(pendingOrigin); show(3); notice('✅ Storage access verified.', 'success'); setTimeout(afterStorage, 900); }
+    else { await enterStep3(); notice('Storage access still isn’t granted.'); }
+  }
+})();
+</script>
+</body>
+</html>
