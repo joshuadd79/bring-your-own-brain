@@ -18,6 +18,9 @@
   .ghost { background:none; border:1px solid #475569; color:var(--muted); padding:8px 12px; font-size:12px; }
   .ghost:hover { border-color:#94a3b8; color:#fff; }
   .danger:hover { border-color:#ef4444; color:#fca5a5; }
+  a.linkbtn { display:inline-block; text-decoration:none; border-radius:10px; font:inherit; }
+  a.green.linkbtn:hover { color:#fff; }
+  a.ghost.linkbtn { padding:8px 12px; font-size:12px; }
 
   #compact { height:100%; display:flex; align-items:center; justify-content:center; }
   #btnConnect { width:100%; height:100%; border-radius:12px; font-size:15px; }
@@ -48,6 +51,9 @@
   .bar { height:8px; background:var(--line); border-radius:4px; overflow:hidden; margin:10px 0 6px; }
   .bar > div { height:100%; width:3%; background:var(--green); transition:width .2s; }
   .mono { font-family:ui-monospace,monospace; font-size:12px; color:var(--muted); }
+  .promo { border-top:1px solid var(--line); margin-top:16px; padding-top:14px; }
+  .promo p { margin-bottom:8px; }
+  .promo .row { margin-top:6px; }
 </style>
 </head>
 <body>
@@ -133,6 +139,35 @@
         <button class="ghost" id="btnForget">Forget this site</button>
         <button class="ghost danger" id="btnUninstall">Uninstall model</button>
       </div>
+      <div class="promo">
+        <p>Loving local AI? Discover more games at Hackathon Games.</p>
+        <div class="row">
+          <a class="ghost linkbtn" href="https://hackathon.games" target="_blank" rel="noopener">Visit catalog</a>
+        </div>
+        <p style="margin-top:14px"><b>Developers:</b> build your own AI game for free with no API costs when you power your apps with BYOB.</p>
+        <div class="row">
+          <a class="ghost linkbtn" href="https://bringyourownbrain.org" target="_blank" rel="noopener">Get Started</a>
+        </div>
+      </div>
+    </section>
+
+    <!-- Welcome back: shown to returning users who just need one click to re-grant storage access -->
+    <section id="s7">
+      <h2>👋 Welcome back!</h2>
+      <p>Loving local AI? Discover more games at Hackathon Games.</p>
+      <div class="row">
+        <a class="green linkbtn" href="https://hackathon.games" target="_blank" rel="noopener">Visit catalog</a>
+      </div>
+      <div class="promo">
+        <p><b>Developers:</b> build your own AI game for free with no API costs when you power your apps with BYOB.</p>
+        <div class="row">
+          <a class="ghost linkbtn" href="https://bringyourownbrain.org" target="_blank" rel="noopener">Get Started</a>
+        </div>
+      </div>
+      <div class="row" style="margin-top:16px">
+        <button class="green" id="btnReconnect">Reconnect local AI</button>
+        <button class="ghost" id="btnReconnectCancel">Not now</button>
+      </div>
     </section>
   </div>
 </div>
@@ -144,10 +179,14 @@ const REQUIRE_CAPTCHA = false;
 const RECAPTCHA_SITE_KEY = 'null';
 const MODEL_NAME = 'Qwen2.5 0.5B Instruct';
 
-const KEY_ACK = 'byob_notice_ack', ACK_VERSION = 1;   // bump ACK_VERSION whenever the notice text changes materially
+const KEY_ACK = 'byob_notice_ack', ACK_VERSION = 1; // bump ACK_VERSION whenever the notice text changes materially
 const KEY_MODEL = 'byob_installed_model', KEY_ONB = 'byob_onboarded', KEY_TIER = 'byob_activeTier', WIZ = 'byob_wiz', KEY_AUTH = 'byob_authorized_origins';
+const KEY_SEEN = 'byob_seen'; // plain (per-site) localStorage marker: this browser has completed setup on this site before
 const $ = (id) => document.getElementById(id);
-const inIframe = window.top !== window;
+
+// Cross-origin access to window.top can throw in some sandboxed contexts, so guard it.
+let inIframe = false;
+try { inIframe = window.self !== window.top; } catch (e) { inIframe = true; }
 
 let pendingOrigin = null, parentOrigin = null, authOk = false, storageOk = false, ready = false, busy = false, manageOpen = false;
 
@@ -164,19 +203,25 @@ const kv = () => (sharedHandle ? sharedHandle.localStorage : localStorage);
 const load = (k) => { try { return JSON.parse(kv().getItem(k)); } catch { return null; } };
 const save = (k, v) => { try { kv().setItem(k, JSON.stringify(v)); } catch {} };
 const drop = (k) => { try { kv().removeItem(k); } catch {} };
+
+const markSeen = () => { try { localStorage.setItem(KEY_SEEN, '1'); } catch {} };
+const wasSeen = () => { try { return localStorage.getItem(KEY_SEEN) === '1'; } catch { return false; } };
+const clearSeen = () => { try { localStorage.removeItem(KEY_SEEN); } catch {} };
+
 function useHandle(h) {
   sharedHandle = h; setSharedCaches(h.caches);
+  try { if (h.localStorage.getItem(KEY_MODEL)) markSeen(); } catch {} // existing install found in the shared bucket: remember this site has been set up
   // WebLLM reads the global caches/indexedDB; point them at the shared (unpartitioned) buckets.
   try { Object.defineProperty(window, 'caches', { configurable: true, get: () => h.caches }); } catch {}
   try { Object.defineProperty(window, 'indexedDB', { configurable: true, get: () => h.indexedDB }); } catch {}
 }
+
 // Only succeeds without a click if this browser already remembers a grant for this game site.
 async function trySilentHandle() {
   if (!inIframe || sharedHandle) return !!sharedHandle;
   try {
     const p = await navigator.permissions.query({ name: 'storage-access' });
     if (p.state !== 'granted') return false;
-    // FIXED: Use the exact Privacy Sandbox dictionary
     const h = await document.requestStorageAccess({ caches: true, localStorage: true, indexedDB: true });
     if (h && h.localStorage && h.caches) { useHandle(h); return true; }
   } catch {}
@@ -195,8 +240,10 @@ const writeWiz = (o) => { try { sessionStorage.setItem(WIZ, JSON.stringify({ ...
 const clearWiz = () => { try { sessionStorage.removeItem(WIZ); } catch {} };
 
 function toParent(msg) { if (inIframe && parentOrigin) window.parent.postMessage({ ...msg }, parentOrigin); }
+
 function show(n) {
-  for (let i = 0; i <= 6; i++) $('s' + i).style.display = i === n ? 'block' : 'none';
+  for (let i = 0; i <= 7; i++) $('s' + i).style.display = i === n ? 'block' : 'none';
+  $('dots').style.display = n === 7 ? 'none' : 'flex'; // no step dots on the welcome-back page
   [...$('dots').children].forEach((d, i) => d.className = i < Math.min(n, 4) ? 'on' : '');
 }
 function notice(t, type = 'error') { const el = $('notice'); el.textContent = t; el.className = 'notice ' + type; el.style.display = 'block'; }
@@ -204,6 +251,7 @@ const hideNotice = () => { $('notice').style.display = 'none'; };
 
 function expand() { document.body.classList.add('expanded'); toParent({ type: 'BYOB_UI', action: 'expand' }); }
 function collapse() { if (!inIframe) return; document.body.classList.remove('expanded'); manageOpen = false; toParent({ type: 'BYOB_UI', action: 'collapse' }); }
+
 function refreshCompact() {
   const b = $('btnConnect');
   b.textContent = ready ? '✅ Local AI connected' : 'Connect local AI';
@@ -227,7 +275,7 @@ window.addEventListener('message', (e) => {
     toParent({ type: 'BYOB_UI', action: document.body.classList.contains('expanded') ? 'expand' : 'collapse' });
     toParent({ type: 'BYOB_STATE', state: ready ? 'ready' : 'idle' });
   } else if (e.data.type === 'BYOB_OPEN' && e.origin === parentOrigin && !document.body.classList.contains('expanded')) {
-    openFlow();   // the host page's own Connect button was clicked: start the flow (its first step is the notice, which needs a click here)
+    openFlow(); // the host page's own Connect button was clicked: start the flow (its first step is the notice, which needs a click here)
   }
 });
 
@@ -246,7 +294,7 @@ function loadRecaptcha() {
 
 async function startFlow() {
   authOk = false; hideNotice();
-  if (!hasAck()) { show(0); return; }   // safety / 18+ notice comes before anything else
+  if (!hasAck()) { show(0); return; } // safety / 18+ notice comes before anything else
   show(1);
   $('consentWrap').style.display = 'none'; $('captchaWrap').style.display = 'none';
   if (!REQUIRE_CAPTCHA) return consentStage();
@@ -264,16 +312,21 @@ async function startFlow() {
 function consentStage() {
   const o = siteOrigin();
   if (!o) { notice('Waiting for game page. Try again in a moment.'); show(1); return; }
-  if (isAuthorized(o)) return grant(o);
+  if (isAuthorized(o)) return grant(o, true); // authorized on an earlier visit
   $('captchaWrap').style.display = 'none';
   $('consentOrigin').textContent = o;
   $('consentWrap').style.display = 'block';
 }
 
-async function grant(o) {
+async function grant(o, priorAuth = false) {
   authOk = true; pendingOrigin = o; authorize(o);
   storageOk = await hasStorageAccess();
-  if (load(KEY_ONB) && getInstalled() && storageOk) return connectModel(false);
+  const returning = priorAuth || wasSeen() || (load(KEY_ONB) && getInstalled());
+  if (returning) {
+    // Returning user: connect straight away if storage is ready, otherwise show the
+    // friendly welcome-back page (its button performs the click-required storage request).
+    return storageOk ? connectModel(false) : show(7);
+  }
   show(2);
 }
 
@@ -287,7 +340,9 @@ async function enterStep3() {
     : 'Click the button — your browser will ask permission. This lets your downloaded model be shared across games.';
 }
 
-$('btnAllow').addEventListener('click', async () => {
+// Shared by the Step 3 button and the welcome-back "Reconnect" button (needs a user click).
+async function requestStorage() {
+  hideNotice();
   try {
     try {
       const h = await document.requestStorageAccess({ caches: true, localStorage: true, indexedDB: true });
@@ -296,17 +351,20 @@ $('btnAllow').addEventListener('click', async () => {
         if (pendingOrigin) authorize(pendingOrigin);
         saveAck();
         storageOk = true;
+        markSeen();
         notice('✅ Storage access verified.', 'success');
         setTimeout(afterStorage, 600);
         return;
       }
     } catch (e) {}
-
     await document.requestStorageAccess();
+    markSeen();
     writeWiz({ auth: true, origin: pendingOrigin, ack: true });
     location.reload();
-  } catch (err) { notice('Storage access was not granted (' + ((err && err.name) || 'error') + '). Tap “Allow storage access” again.'); }
-});
+  } catch (err) { notice('Storage access was not granted (' + ((err && err.name) || 'error') + '). Please try again.'); }
+}
+$('btnAllow').addEventListener('click', requestStorage);
+$('btnReconnect').addEventListener('click', requestStorage);
 
 function afterStorage() { getInstalled() && load(KEY_ONB) ? connectModel(false) : show(4); }
 
@@ -322,7 +380,7 @@ async function connectModel(installing) {
   try {
     try { localStorage.setItem(KEY_TIER, 'micro'); } catch {}
     await loadTier('micro', (i) => {
-      if (i && i.status === 'pct') { setPct(i.pct, i.text); return; }   // GPU engine (WebLLM)
+      if (i && i.status === 'pct') { setPct(i.pct, i.text); return; } // GPU engine (WebLLM)
       if (!i || !i.file) return;
       files[i.file] ||= { l: 0, t: 0 };
       if (i.status === 'progress') { files[i.file].l = i.loaded || 0; files[i.file].t = i.total || 0; }
@@ -336,6 +394,7 @@ async function connectModel(installing) {
     const info = getEngineInfo();
     save(KEY_MODEL, { tier: 'micro', name: MODEL_NAME, device: info.device, installedAt: (getInstalled() || {}).installedAt || Date.now() });
     save(KEY_ONB, 1);
+    markSeen();
     ready = true; refreshCompact(); showReady();
     toParent({ type: 'BYOB_STATE', state: 'ready' });
     setTimeout(() => { if (ready && !manageOpen) collapse(); }, installing ? 1500 : 500);
@@ -357,6 +416,7 @@ async function openFlow() {
   await trySilentHandle();
   if (ready) { manageOpen = true; showReady(); } else startFlow();
 }
+
 $('btnConnect').addEventListener('click', openFlow);
 $('btnAgree').addEventListener('click', () => { saveAck(); startFlow(); });
 $('btnDisagree').addEventListener('click', () => { collapse(); toParent({ type: 'BYOB_STATE', state: 'denied' }); });
@@ -364,7 +424,8 @@ $('btnCancel').addEventListener('click', collapse);
 $('btnCaptchaRetry').addEventListener('click', startFlow);
 $('btnConsentAllow').addEventListener('click', () => grant(siteOrigin()));
 $('btnConsentDeny').addEventListener('click', () => { collapse(); toParent({ type: 'BYOB_STATE', state: 'denied' }); });
-$('btnForget').addEventListener('click', () => { forget(siteOrigin()); ready = false; authOk = false; location.reload(); });
+$('btnReconnectCancel').addEventListener('click', () => { collapse(); toParent({ type: 'BYOB_STATE', state: 'idle' }); });
+$('btnForget').addEventListener('click', () => { forget(siteOrigin()); clearSeen(); ready = false; authOk = false; location.reload(); });
 $('btnS2').addEventListener('click', enterStep3);
 $('btnS3Continue').addEventListener('click', afterStorage);
 $('btnModel').addEventListener('click', () => connectModel(true));
@@ -372,28 +433,29 @@ $('btnClose').addEventListener('click', collapse);
 $('btnUninstall').addEventListener('click', async () => {
   ready = false; authOk = false;
   await unloadActiveEngine();
-  try { 
-    const cs = sharedHandle ? sharedHandle.caches : caches; 
+  try {
+    const cs = sharedHandle ? sharedHandle.caches : caches;
     for (const k of await cs.keys()) {
       if (/transformers|byob|webllm|web-llm|qwen|mlc/i.test(k)) await cs.delete(k);
-    } 
+    }
   } catch {}
-  try { 
+  try {
     for (const d of (await indexedDB.databases?.()) || []) {
       if (/transformers|onnx|webllm|web-llm|mlc/i.test(d.name || '')) indexedDB.deleteDatabase(d.name);
-    } 
+    }
   } catch {}
-  drop(KEY_MODEL); drop(KEY_ONB); drop(KEY_AUTH); clearWiz();
+  drop(KEY_MODEL); drop(KEY_ONB); drop(KEY_AUTH); clearWiz(); clearSeen();
   location.reload();
 });
 
 (async () => {
   await trySilentHandle();
+  if (getInstalled()) markSeen();
   refreshCompact();
   const wiz = readWiz();
   if (wiz && wiz.auth) {
     clearWiz(); authOk = true; pendingOrigin = wiz.origin || null; document.body.classList.add('expanded');
-    if (wiz.ack) saveAck();   // storage just switched buckets: re-save the acknowledgement
+    if (wiz.ack) saveAck(); // storage just switched buckets: re-save the acknowledgement
     storageOk = await hasStorageAccess();
     if (storageOk) { if (pendingOrigin) authorize(pendingOrigin); show(3); notice('✅ Storage access verified.', 'success'); setTimeout(afterStorage, 900); }
     else { await enterStep3(); notice('Storage access still isn’t granted.'); }
