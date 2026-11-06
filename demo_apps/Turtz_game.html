@@ -1,0 +1,626 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Turtle Road Crosser & The Concerned Citizen</title>
+    
+    <!-- 1. SCRIPT TAGS (Exact Match) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
+    <script src="https://bringyourownbrain.org/byob-web-sdk.js"></script>
+
+    <!-- Retro Font -->
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --bg-color: #2b2b2b;
+            --road-color: #444;
+            --grass-color: #2d8a3c;
+            --water-color: #3b7dc9;
+            --ui-bg: #111;
+            --text-color: #fff;
+            --accent: #fcd000;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: 'Press Start 2P', cursive;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            touch-action: none; /* Prevent scroll on mobile */
+        }
+
+        #ui-bar {
+            background-color: var(--ui-bg);
+            border-bottom: 4px solid var(--accent);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 10px;
+            height: 60px;
+            box-sizing: border-box;
+            font-size: 12px;
+        }
+
+        #game-wrapper {
+            flex-grow: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+            background: #000;
+        }
+
+        canvas {
+            background-color: var(--road-color);
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+            box-shadow: 0 0 20px rgba(0,0,0,0.5);
+        }
+
+        /* Mobile Controls & Chat Layout */
+        #bottom-panel {
+            background-color: var(--ui-bg);
+            border-top: 4px solid var(--accent);
+            display: flex;
+            flex-direction: column;
+            padding: 10px;
+            gap: 10px;
+        }
+
+        #chat-section {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+        }
+
+        #chat-input {
+            flex-grow: 1;
+            max-width: 400px;
+            background: #222;
+            border: 2px solid #555;
+            color: #fff;
+            font-family: 'Press Start 2P', cursive;
+            font-size: 10px;
+            padding: 8px;
+        }
+
+        #chat-btn {
+            background: var(--accent);
+            color: #000;
+            border: 2px solid #fff;
+            font-family: 'Press Start 2P', cursive;
+            font-size: 10px;
+            cursor: pointer;
+            padding: 8px 12px;
+            text-transform: uppercase;
+        }
+        
+        #chat-btn:active {
+            background: #fff;
+        }
+
+        /* Virtual D-Pad for Mobile */
+        #d-pad {
+            display: none;
+            grid-template-columns: 50px 50px 50px;
+            grid-template-rows: 50px 50px;
+            gap: 5px;
+            justify-content: center;
+            margin-bottom: 5px;
+        }
+
+        .d-btn {
+            background: #333;
+            border: 2px solid #666;
+            border-radius: 8px;
+            color: white;
+            font-family: 'Press Start 2P', cursive;
+            font-size: 16px;
+            user-select: none;
+        }
+
+        .d-btn:active { background: #555; }
+        .d-up { grid-column: 2; grid-row: 1; }
+        .d-left { grid-column: 1; grid-row: 2; }
+        .d-down { grid-column: 2; grid-row: 2; }
+        .d-right { grid-column: 3; grid-row: 2; }
+
+        @media (max-width: 768px) {
+            #d-pad { display: grid; }
+            #ui-bar { font-size: 10px; }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="ui-bar">
+        <div>LEVEL: <span id="level-display">1</span> | LIVES: <span id="lives-display">3</span></div>
+        
+        <!-- 2. UI & BUTTON MOUNT (Exact Match) -->
+        <div id="byob-mount" style="min-width: 230px; height: 48px; display: flex; align-items: center; justify-content: flex-end;"></div>
+    </div>
+
+    <div id="game-wrapper">
+        <canvas id="gameCanvas" width="800" height="600"></canvas>
+    </div>
+
+    <div id="bottom-panel">
+        <div id="chat-section">
+            <input type="text" id="chat-input" placeholder="Ask NPC to stop traffic...">
+            <button id="chat-btn" onclick="triggerAskNPC()">Ask</button>
+        </div>
+        
+        <div id="d-pad">
+            <button class="d-btn d-up" onpointerdown="inputState.up=true" onpointerup="inputState.up=false" onpointerleave="inputState.up=false">U</button>
+            <button class="d-btn d-left" onpointerdown="inputState.left=true" onpointerup="inputState.left=false" onpointerleave="inputState.left=false">L</button>
+            <button class="d-btn d-down" onpointerdown="inputState.down=true" onpointerup="inputState.down=false" onpointerleave="inputState.down=false">D</button>
+            <button class="d-btn d-right" onpointerdown="inputState.right=true" onpointerup="inputState.right=false" onpointerleave="inputState.right=false">R</button>
+        </div>
+    </div>
+
+    <script>
+        // --- 2. INITIALIZE BYOB SDK ---
+        const brain = new BringYourOwnBrainWeb({ container: document.getElementById('byob-mount'), width: '220px', height: '44px' });
+        brain.mount();
+
+        // --- GAME STATE ---
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        ctx.imageSmoothingEnabled = false; // Retro pixel look
+
+        let level = 1;
+        let lives = 3;
+        let trafficStopTimer = 0;
+        
+        const inputState = { up: false, down: false, left: false, right: false };
+
+        const npcState = {
+            speechText: "",
+            shakeFrames: 0
+        };
+
+        // --- MATTER.JS SETUP ---
+        const Engine = Matter.Engine,
+              World = Matter.World,
+              Bodies = Matter.Bodies,
+              Body = Matter.Body,
+              Events = Matter.Events,
+              Composite = Matter.Composite;
+
+        const engine = Engine.create();
+        engine.gravity.y = 0; // Top-down view
+        const world = engine.world;
+
+        // --- ENTITIES ---
+        // Player: Turtle
+        const turtleStart = { x: 400, y: 550 };
+        const turtle = Bodies.circle(turtleStart.x, turtleStart.y, 16, { 
+            label: 'turtle', 
+            frictionAir: 0.2, // Slides a little but stops
+            restitution: 0.2
+        });
+
+        // NPC: Concerned Citizen
+        const npcBody = Bodies.rectangle(400, 480, 24, 32, { 
+            label: 'npc', 
+            mass: 50, // Heavy enough to not fly away, but can be shoved
+            frictionAir: 0.8,
+            restitution: 0
+        });
+
+        // End Goal
+        const goal = Bodies.rectangle(400, 40, 800, 80, { label: 'goal', isStatic: true, isSensor: true });
+
+        // Boundaries
+        const walls = [
+            Bodies.rectangle(400, -10, 800, 20, { isStatic: true }),
+            Bodies.rectangle(400, 610, 800, 20, { isStatic: true }),
+            Bodies.rectangle(-10, 300, 20, 600, { isStatic: true }),
+            Bodies.rectangle(810, 300, 20, 600, { isStatic: true })
+        ];
+
+        World.add(world, [turtle, npcBody, goal, ...walls]);
+
+        // Cars
+        let cars = [];
+        const laneConfigs = [
+            { y: 380, speed: 3, width: 60, color: '#e74c3c' },
+            { y: 310, speed: -4, width: 80, color: '#3498db' },
+            { y: 240, speed: 5, width: 50, color: '#f1c40f' },
+            { y: 170, speed: -3.5, width: 70, color: '#9b59b6' },
+            { y: 100, speed: 6, width: 60, color: '#e67e22' }
+        ];
+
+        function spawnCars() {
+            cars.forEach(car => World.remove(world, car));
+            cars = [];
+            laneConfigs.forEach(lane => {
+                const numCars = 2 + Math.floor(level / 2);
+                for (let i = 0; i < numCars; i++) {
+                    const xPos = Math.random() * 800;
+                    const car = Bodies.rectangle(xPos, lane.y, lane.width, 30, {
+                        label: 'car',
+                        isSensor: true, // Don't physically push player, just detect collision
+                        laneSpeed: lane.speed * (1 + level * 0.1),
+                        carColor: lane.color
+                    });
+                    cars.push(car);
+                    World.add(world, car);
+                }
+            });
+        }
+        spawnCars();
+
+
+        // --- 3 & 4. CHAT DISPATCH & TOKEN STREAMING ---
+        let currentChat = null;
+        function askNPC(playerText) {
+            if (currentChat && currentChat.cancel) currentChat.cancel();
+            npcState.speechText = "";
+            
+            // 3. Exact Format Requirement
+            currentChat = brain.chat([
+                { role: 'system', content: 'You are concerned citizen, may get annoyed at traffic and stop traffic trmporarily to help the turtle have time to pass. Reply in 1 short sentence.' },
+                { role: 'user', content: playerText }
+            ], { priority: 'high', max_tokens: 30 });
+
+            // Help the turtle by stopping traffic!
+            trafficStopTimer = 240; // 4 seconds of stopped traffic at 60fps
+        }
+
+        // 4. Token Streaming Rule
+        brain.onChunk = (token) => {
+            npcState.speechText += token;
+        };
+
+        function triggerAskNPC() {
+            const input = document.getElementById('chat-input');
+            let text = input.value.trim();
+            if (!text) text = "Help me cross the road!";
+            askNPC(text);
+            input.value = '';
+        }
+
+        // --- 5. THE SHOVE / INTERRUPT MECHANIC ---
+        Events.on(engine, 'collisionStart', function(event) {
+            event.pairs.forEach((pair) => {
+                const { bodyA, bodyB } = pair;
+                const labels = [bodyA.label, bodyB.label];
+
+                // Turtle hits NPC -> INTERRUPT
+                if (labels.includes('turtle') && labels.includes('npc')) {
+                    // Immediately abort
+                    if (currentChat && currentChat.cancel) currentChat.cancel();
+                    
+                    // Clear speech bubble and instantly display exactly this string
+                    npcState.speechText = "Stop! There is a TURTLE in the street!";
+                    
+                    // Funny squash/shake animation trigger
+                    npcState.shakeFrames = 45; 
+                    
+                    // Also stop traffic since they yelled
+                    trafficStopTimer = 180;
+                }
+
+                // Turtle gets hit by a car -> SQUISH
+                if (labels.includes('turtle') && labels.includes('car')) {
+                    die();
+                }
+
+                // Turtle reaches the goal -> NEXT LEVEL
+                if (labels.includes('turtle') && labels.includes('goal')) {
+                    levelUp();
+                }
+            });
+        });
+
+        // --- GAME LOGIC ---
+        function die() {
+            lives--;
+            document.getElementById('lives-display').innerText = lives;
+            if (lives <= 0) {
+                alert("GAME OVER! You reached Level " + level);
+                level = 1;
+                lives = 3;
+                document.getElementById('level-display').innerText = level;
+                document.getElementById('lives-display').innerText = lives;
+                spawnCars();
+            }
+            resetTurtle();
+        }
+
+        function levelUp() {
+            level++;
+            document.getElementById('level-display').innerText = level;
+            resetTurtle();
+            spawnCars();
+        }
+
+        function resetTurtle() {
+            Body.setPosition(turtle, { x: turtleStart.x, y: turtleStart.y });
+            Body.setVelocity(turtle, { x: 0, y: 0 });
+            
+            // Reset NPC too
+            Body.setPosition(npcBody, { x: 400, y: 480 });
+            Body.setVelocity(npcBody, { x: 0, y: 0 });
+            npcState.speechText = "";
+            trafficStopTimer = 0;
+        }
+
+        // Keyboard Controls
+        window.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowUp' || e.key === 'w') inputState.up = true;
+            if (e.key === 'ArrowDown' || e.key === 's') inputState.down = true;
+            if (e.key === 'ArrowLeft' || e.key === 'a') inputState.left = true;
+            if (e.key === 'ArrowRight' || e.key === 'd') inputState.right = true;
+            // Press Enter to chat
+            if (e.key === 'Enter' && document.activeElement === document.getElementById('chat-input')) {
+                triggerAskNPC();
+            }
+        });
+        window.addEventListener('keyup', (e) => {
+            if (e.key === 'ArrowUp' || e.key === 'w') inputState.up = false;
+            if (e.key === 'ArrowDown' || e.key === 's') inputState.down = false;
+            if (e.key === 'ArrowLeft' || e.key === 'a') inputState.left = false;
+            if (e.key === 'ArrowRight' || e.key === 'd') inputState.right = false;
+        });
+
+        function handleInput() {
+            const speed = 2.5;
+            let vx = turtle.velocity.x;
+            let vy = turtle.velocity.y;
+            
+            if (inputState.up) vy = -speed;
+            else if (inputState.down) vy = speed;
+            else vy *= 0.8; // dampening
+
+            if (inputState.left) vx = -speed;
+            else if (inputState.right) vx = speed;
+            else vx *= 0.8; // dampening
+
+            Body.setVelocity(turtle, { x: vx, y: vy });
+            
+            // Keep NPC upright / slow down shoving
+            Body.setAngle(npcBody, 0);
+            Body.setVelocity(npcBody, { x: npcBody.velocity.x * 0.5, y: npcBody.velocity.y * 0.5 });
+        }
+
+        function updateCars() {
+            if (trafficStopTimer > 0) {
+                trafficStopTimer--;
+                cars.forEach(car => Body.setVelocity(car, { x: 0, y: 0 }));
+            } else {
+                cars.forEach(car => {
+                    Body.setVelocity(car, { x: car.laneSpeed, y: 0 });
+                    // Wrap around
+                    if (car.laneSpeed > 0 && car.position.x > 850) {
+                        Body.setPosition(car, { x: -50, y: car.position.y });
+                    } else if (car.laneSpeed < 0 && car.position.x < -50) {
+                        Body.setPosition(car, { x: 850, y: car.position.y });
+                    }
+                });
+            }
+        }
+
+        // --- DRAWING FUNCTIONS (Retro Graphics) ---
+        function wrapText(context, text, x, y, maxWidth, lineHeight) {
+            const words = text.split(' ');
+            let line = '';
+            let currentY = y;
+            for(let n = 0; n < words.length; n++) {
+                let testLine = line + words[n] + ' ';
+                let metrics = context.measureText(testLine);
+                let testWidth = metrics.width;
+                if (testWidth > maxWidth && n > 0) {
+                    context.fillText(line, x, currentY);
+                    line = words[n] + ' ';
+                    currentY += lineHeight;
+                } else {
+                    line = testLine;
+                }
+            }
+            context.fillText(line, x, currentY);
+            return currentY + lineHeight - y; // Return total height used
+        }
+
+        function draw() {
+            // Background (Road)
+            ctx.fillStyle = '#444';
+            ctx.fillRect(0, 0, 800, 600);
+
+            // Goal (Grass/Water)
+            ctx.fillStyle = '#2d8a3c';
+            ctx.fillRect(0, 0, 800, 80);
+            ctx.fillStyle = '#3b7dc9';
+            ctx.fillRect(0, 0, 800, 20);
+
+            // Start Zone (Sidewalk)
+            ctx.fillStyle = '#666';
+            ctx.fillRect(0, 430, 800, 170);
+            ctx.fillStyle = '#888';
+            ctx.fillRect(0, 430, 800, 10);
+
+            // Road Lines
+            ctx.strokeStyle = '#fcd000';
+            ctx.lineWidth = 4;
+            ctx.setLineDash([20, 20]);
+            for(let i=1; i<laneConfigs.length; i++) {
+                let y = laneConfigs[i].y + 35;
+                ctx.beginPath();
+                ctx.moveTo(0, y);
+                ctx.lineTo(800, y);
+                ctx.stroke();
+            }
+            ctx.setLineDash([]); // Reset dash
+
+            // Draw Cars
+            cars.forEach(car => {
+                ctx.fillStyle = car.carColor;
+                ctx.fillRect(car.position.x - car.bounds.max.x + car.position.x, 
+                             car.position.y - 15, 
+                             car.bounds.max.x - car.bounds.min.x, 30);
+                
+                // Details (Windows/lights)
+                ctx.fillStyle = '#e0e0e0';
+                if (car.laneSpeed > 0) {
+                    ctx.fillRect(car.bounds.max.x - 15, car.position.y - 10, 10, 20);
+                } else {
+                    ctx.fillRect(car.bounds.min.x + 5, car.position.y - 10, 10, 20);
+                }
+            });
+
+            // Draw NPC (Concerned Citizen)
+            let nX = npcBody.position.x;
+            let nY = npcBody.position.y;
+            let nScaleX = 1;
+            let nScaleY = 1;
+
+            // 5. Funny squash/shake animation during interrupt
+            if (npcState.shakeFrames > 0) {
+                npcState.shakeFrames--;
+                nX += (Math.random() - 0.5) * 8;
+                nY += (Math.random() - 0.5) * 8;
+                nScaleX = 1 + 0.3 * Math.sin(npcState.shakeFrames * 0.5);
+                nScaleY = 1 - 0.3 * Math.sin(npcState.shakeFrames * 0.5);
+            }
+
+            ctx.save();
+            ctx.translate(nX, nY);
+            ctx.scale(nScaleX, nScaleY);
+            
+            // Body
+            ctx.fillStyle = '#3498db'; // Blue shirt
+            ctx.fillRect(-12, -8, 24, 24);
+            // Head
+            ctx.fillStyle = '#f1c27d'; // Skin tone
+            ctx.fillRect(-8, -20, 16, 16);
+            // Legs
+            ctx.fillStyle = '#2c3e50';
+            ctx.fillRect(-10, 16, 8, 16);
+            ctx.fillRect(2, 16, 8, 16);
+            
+            ctx.restore();
+
+            // Draw Speech Bubble
+            if (npcState.speechText !== "") {
+                ctx.save();
+                ctx.font = '10px "Press Start 2P"';
+                const padding = 10;
+                const maxWidth = 160;
+                
+                // Measure roughly how many lines
+                const words = npcState.speechText.split(' ');
+                let testLine = '';
+                let lines = 1;
+                for(let n = 0; n < words.length; n++) {
+                    let measure = testLine + words[n] + ' ';
+                    if (ctx.measureText(measure).width > maxWidth && n > 0) {
+                        lines++;
+                        testLine = words[n] + ' ';
+                    } else {
+                        testLine = measure;
+                    }
+                }
+
+                const boxHeight = (lines * 14) + padding * 2;
+                const boxWidth = maxWidth + padding * 2;
+                
+                const bX = npcBody.position.x - boxWidth / 2;
+                const bY = npcBody.position.y - boxHeight - 40;
+
+                // Bubble tail
+                ctx.fillStyle = '#fff';
+                ctx.strokeStyle = '#000';
+                ctx.lineWidth = 2;
+                
+                ctx.beginPath();
+                ctx.moveTo(bX + boxWidth/2 - 10, bY + boxHeight);
+                ctx.lineTo(bX + boxWidth/2, bY + boxHeight + 10);
+                ctx.lineTo(bX + boxWidth/2 + 10, bY + boxHeight);
+                ctx.fill();
+                ctx.stroke();
+
+                // Bubble Box
+                ctx.fillRect(bX, bY, boxWidth, boxHeight);
+                ctx.strokeRect(bX, bY, boxWidth, boxHeight);
+
+                // Text
+                ctx.fillStyle = '#000';
+                wrapText(ctx, npcState.speechText, bX + padding, bY + padding + 10, maxWidth, 14);
+                
+                ctx.restore();
+            }
+
+            // Draw Turtle (Player)
+            ctx.save();
+            ctx.translate(turtle.position.x, turtle.position.y);
+            // Determine angle based on velocity for simple rotation
+            if (Math.abs(turtle.velocity.x) > 0.1 || Math.abs(turtle.velocity.y) > 0.1) {
+                turtle.renderAngle = Math.atan2(turtle.velocity.y, turtle.velocity.x) + Math.PI/2;
+            } else if (turtle.renderAngle === undefined) {
+                turtle.renderAngle = 0;
+            }
+            ctx.rotate(turtle.renderAngle);
+
+            // Legs
+            ctx.fillStyle = '#1e5928';
+            ctx.fillRect(-18, -14, 10, 10);
+            ctx.fillRect(8, -14, 10, 10);
+            ctx.fillRect(-18, 4, 10, 10);
+            ctx.fillRect(8, 4, 10, 10);
+            
+            // Head
+            ctx.fillStyle = '#2d8a3c';
+            ctx.beginPath();
+            ctx.arc(0, -18, 8, 0, 2*Math.PI);
+            ctx.fill();
+
+            // Shell
+            ctx.fillStyle = '#27ae60';
+            ctx.beginPath();
+            ctx.ellipse(0, 0, 14, 18, 0, 0, 2*Math.PI);
+            ctx.fill();
+            
+            // Shell pattern
+            ctx.strokeStyle = '#1e5928';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(0, -12);
+            ctx.lineTo(0, 12);
+            ctx.moveTo(-10, 0);
+            ctx.lineTo(10, 0);
+            ctx.stroke();
+
+            ctx.restore();
+        }
+
+        // --- 6. NON-BLOCKING GAME LOOP ---
+        function gameLoop() {
+            // Update Physics (60 FPS step)
+            Engine.update(engine, 1000 / 60);
+
+            // Handle Logic
+            handleInput();
+            updateCars();
+
+            // Render
+            draw();
+
+            // Request next frame so inference/loop never drops
+            window.requestAnimationFrame(gameLoop);
+        }
+
+        // Start loop
+        window.requestAnimationFrame(gameLoop);
+
+    </script>
+</body>
+</html>
