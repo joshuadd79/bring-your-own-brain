@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BYOBrain Web SDK - Developer Documentation</title>
+    <style>
+        :root {
+            --bg: #0f1115;
+            --surface: #1a1d24;
+            --surface-hover: #232730;
+            --text-main: #e2e8f0;
+            --text-muted: #94a3b8;
+            --primary: #00ffcc;
+            --primary-glow: rgba(0, 255, 204, 0.3);
+            --accent: #ff00aa;
+            --border: #334155;
+            --code-bg: #0b0c10;
+            --code-color: #6ee7b7;
+            --danger: #ef4444;
+            --success: #22c55e;
+            --font-main: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            background-color: var(--bg);
+            color: var(--text-main);
+            font-family: var(--font-main);
+            line-height: 1.6;
+            display: flex;
+            min-height: 100vh;
+        }
+
+        /* Layout */
+        .sidebar {
+            width: 280px;
+            background: var(--surface);
+            border-right: 1px solid var(--border);
+            padding: 2rem 1.5rem;
+            position: fixed;
+            height: 100vh;
+            overflow-y: auto;
+        }
+
+        .main-content {
+            margin-left: 280px;
+            padding: 4rem 6rem;
+            max-width: 1000px;
+            width: 100%;
+        }
+
+        /* Typography */
+        h1 { font-size: 2.5rem; color: var(--primary); margin-bottom: 0.5rem; text-shadow: 0 0 20px var(--primary-glow); }
+        h2 { font-size: 1.75rem; margin: 3rem 0 1.5rem; padding-bottom: 0.5rem; border-bottom: 1px solid var(--border); color: #fff; }
+        h3 { font-size: 1.25rem; margin: 2rem 0 1rem; color: #fff; }
+        p { margin-bottom: 1.25rem; color: var(--text-muted); font-size: 1.05rem; }
+        strong { color: var(--text-main); }
+        
+        /* Links & Nav */
+        a { color: var(--primary); text-decoration: none; transition: color 0.2s; }
+        a:hover { color: #fff; }
+        
+        .sidebar-nav { list-style: none; margin-top: 2rem; }
+        .sidebar-nav li { margin-bottom: 0.5rem; }
+        .sidebar-nav a { 
+            display: block; 
+            padding: 0.5rem 1rem; 
+            color: var(--text-muted); 
+            border-radius: 6px; 
+            font-weight: 500;
+        }
+        .sidebar-nav a:hover { background: var(--surface-hover); color: var(--primary); }
+        
+        .logo { font-size: 1.5rem; font-weight: 800; color: #fff; letter-spacing: -0.5px;}
+        .logo span { color: var(--primary); }
+
+        /* Code Blocks */
+        pre {
+            background: var(--code-bg);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1.25rem;
+            overflow-x: auto;
+            margin: 1.5rem 0;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.2);
+        }
+        code {
+            font-family: var(--font-mono);
+            font-size: 0.9rem;
+            color: var(--code-color);
+        }
+        p code, li code {
+            background: var(--surface);
+            padding: 0.2rem 0.4rem;
+            border-radius: 4px;
+            border: 1px solid var(--border);
+            color: var(--primary);
+            font-size: 0.9em;
+        }
+
+        /* Callouts / Best Practices */
+        .callout {
+            background: var(--surface);
+            border-left: 4px solid var(--accent);
+            padding: 1.5rem;
+            border-radius: 0 8px 8px 0;
+            margin: 2rem 0;
+        }
+        .callout h4 { margin-bottom: 0.5rem; color: var(--accent); font-size: 1.1rem; }
+        .callout p:last-child { margin-bottom: 0; }
+
+        .callout.success { border-color: var(--success); }
+        .callout.success h4 { color: var(--success); }
+
+        .pill {
+            display: inline-block;
+            background: rgba(0, 255, 204, 0.1);
+            color: var(--primary);
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            font-family: var(--font-mono);
+            margin-right: 8px;
+            border: 1px solid var(--primary);
+        }
+
+        /* Responsive */
+        @media (max-width: 1024px) {
+            .sidebar { display: none; }
+            .main-content { margin-left: 0; padding: 2rem; max-width: 100%; }
+        }
+    </style>
+</head>
+<body>
+
+    <aside class="sidebar">
+        <div class="logo">BYO<span>Brain</span> SDK</div>
+        <ul class="sidebar-nav">
+            <li><a href="#intro">Introduction</a></li>
+            <li><a href="#philosophy">The Golden Rules</a></li>
+            <li><a href="#setup">Basic Setup</a></li>
+            <li><a href="#non-blocking">Non-Blocking Patterns</a></li>
+            <li><a href="#priorities">Priorities & Execution</a></li>
+            <li><a href="#cancellation">Cancellation (Stop AI)</a></li>
+            <li><a href="#precooking">Pre-cooking & Caching</a></li>
+            <li><a href="#validation">Data Validation</a></li>
+            <li><a href="#api">API Reference</a></li>
+        </ul>
+    </aside>
+
+    <main class="main-content">
+        <section id="intro">
+            <h1>Building with BYOBrain</h1>
+            <p style="font-size: 1.25rem; color: #fff;">A guide to building resilient, non-blocking games powered by local AI.</p>
+            <p>Because Bring Your Own Brain (BYOB) runs on the <strong>player's local hardware</strong> (via browser extension or web fallback), inference speeds can vary wildly from high-end GPUs to integrated mobile chips. Designing for BYOB requires a shift in mindset: the game must never wait for the AI.</p>
+        </section>
+
+        <section id="philosophy">
+            <div class="callout success">
+                <h4>The Golden Rules of BYOB Design</h4>
+                <p><strong>1. Fallback is King:</strong> Your game must be 100% playable without AI. If the model is slow, offline, or produces gibberish, the game should instantly fall back to standard scripted lines.</p>
+                <p><strong>2. The Player Always Wins:</strong> Player actions (closing a menu, walking away, starting combat) must immediately interrupt and cancel any background AI generation to save GPU compute.</p>
+                <p><strong>3. Never Block the Event Loop:</strong> The game state should continue ticking while the AI thinks. Wrap requests in timeouts.</p>
+            </div>
+        </section>
+
+        <section id="setup">
+            <h2>1. Basic Setup & Mounting</h2>
+            <p>Load the V2 SDK script and instantiate the brain. You can mount the connection UI anywhere in your DOM. The SDK automatically detects if the user has the high-performance BYOB Extension installed, or safely falls back to the web iframe.</p>
+            <pre><code>&lt;!-- Load the SDK --&gt;
+&lt;script src="https://bringyourownbrain.org/byob-web-sdk-v2.js"&gt;&lt;/script&gt;
+
+&lt;!-- Container for the connect button --&gt;
+&lt;div id="connector-slot"&gt;&lt;/div&gt;
+
+&lt;script&gt;
+const brain = new BringYourOwnBrainWeb({
+    container: document.getElementById('connector-slot'),
+    width: '210px',
+    height: '40px',
+    onState: (state, msg) => {
+        if (state === 'ready') console.log('Brain connected!');
+    }
+});
+brain.mount(); // Renders the iframe
+&lt;/script&gt;</code></pre>
+        </section>
+
+        <section id="non-blocking">
+            <h2>2. The Non-Blocking Request Pattern</h2>
+            <p>Do not just <code>await brain.chat()</code>. Instead, wrap requests with a <code>Promise.race</code> timeout so your game doesn't hang if the user's GPU is overloaded.</p>
+            <pre><code>/**
+ * Safe, cancellable wrapper for AI requests.
+ * @param {Array} msgs - Messages array
+ * @param {Object} opts - BYOB options (priority, max_tokens, etc)
+ * @param {Number} timeoutMs - Max time to wait before bailing
+ */
+function askBrainSafe(msgs, opts, timeoutMs = 8000) {
+    const result = { cancel: () => {}, promise: null };
+    
+    try {
+        // 1. Initiate request
+        const p = brain.chat(msgs, opts);
+        
+        // 2. Expose the native cancel method
+        result.cancel = () => { try { p.cancel(); } catch(e){} };
+        
+        // 3. Setup Race Condition for Timeout
+        let timer;
+        const to = new Promise((_, reject) => {
+            timer = setTimeout(() => {
+                result.cancel(); // kill generation
+                reject(new Error('timeout'));
+            }, timeoutMs);
+        });
+
+        // 4. Return the raced promise
+        result.promise = Promise.race([p, to]).finally(() => clearTimeout(timer));
+    } catch(e) {
+        result.promise = Promise.reject(e);
+    }
+    
+    return result;
+}</code></pre>
+        </section>
+
+        <section id="priorities">
+            <h2>3. Priorities & Compute Management</h2>
+            <p>The BYOB engine supports a queue system based on priority. Sending a <code>high</code> priority task instantly preempts and pauses lower priority tasks.</p>
+            <ul>
+                <li><span class="pill">high</span> <strong>Direct Player Interaction:</strong> The player clicked a character and is waiting for a response. Maximize tokens/speed.</li>
+                <li><span class="pill">normal</span> <strong>Reactions:</strong> The player bumped into an NPC or triggered a quick event.</li>
+                <li><span class="pill">low</span> <strong>Ambient Chatter:</strong> Background bots talking to each other. Will be dropped automatically if a high priority task comes in.</li>
+            </ul>
+
+            <pre><code>// The player is waiting for this:
+const reply = brain.chat(messages, { 
+    priority: 'high', 
+    max_tokens: 40,
+    temperature: 0.8
+});
+
+// A background NPC is just thinking:
+const ambient = brain.chat(messages, { 
+    priority: 'low', 
+    max_tokens: 20 
+});</code></pre>
+        </section>
+
+        <section id="cancellation">
+            <h2>4. Cancellation (Stop the GPU)</h2>
+            <p>If an NPC is talking or generating text, and the player walks away or attacks them, <strong>you must cancel the promise</strong>. This frees up the user's hardware immediately.</p>
+            <pre><code>let currentAiTask = null;
+
+function chatWithNPC(npc, text) {
+    // If they were already generating something else, kill it!
+    if (currentAiTask) {
+        currentAiTask.cancel(); 
+    }
+
+    currentAiTask = askBrainSafe([...], { priority: 'high' }, 5000);
+
+    currentAiTask.promise
+        .then(reply => npc.say(reply))
+        .catch(err => {
+            // Handle timeout or manual cancellation gracefully
+            if (err.cancelled) return; 
+            npc.say("I lost my train of thought..."); // Fallback!
+        })
+        .finally(() => currentAiTask = null);
+}
+
+// When the player triggers combat:
+function startCombat() {
+    if (currentAiTask) currentAiTask.cancel();
+}</code></pre>
+        </section>
+
+        <section id="precooking">
+            <h2>5. Pre-cooking & Caching (The Ambient Secret)</h2>
+            <p>Don't generate ambient idle lines on the fly. When the game engine detects the player is idle, use <code>low</code> priority to "pre-cook" lines and store them in an array. When an NPC needs to speak idly, pop a line from the array instantly.</p>
+            
+            <pre><code>// Run this inside your game tick/loop:
+function ambientTick() {
+    // Only generate if we aren't busy and the player hasn't done anything recently
+    if (isAiBusy || playerIsActive) return;
+
+    const idleNPCs = getNPCsWithEmptyCache();
+    if (idleNPCs.length > 0) {
+        const target = idleNPCs[0];
+        
+        // Generate a line in the background
+        const task = askBrainSafe(
+            [{role: 'system', content: 'Generate a short idle thought.'}], 
+            { priority: 'low' }, 
+            12000 // give it plenty of time
+        );
+
+        task.promise.then(line => {
+            if (validateLine(line)) {
+                target.dialogueCache.push(line); // Store for later!
+            }
+        }).catch(() => { /* quietly fail */ });
+    }
+}
+
+// When the NPC actually needs to speak on screen:
+function npcIdleSpeak(npc) {
+    if (npc.dialogueCache.length > 0) {
+        npc.say(npc.dialogueCache.shift()); // Instant delivery!
+    } else {
+        npc.say(npc.defaultScriptedLines[0]); // Scripted fallback
+    }
+}</code></pre>
+        </section>
+
+        <section id="validation">
+            <h2>6. Data Validation</h2>
+            <p>Local AI models hallucinate. They might spit out Markdown, empty brackets, or system prompts. <strong>Never pipe AI text directly to your UI without cleaning it first.</strong> If validation fails, throw it away and use a scripted line.</p>
+            <pre><code>function cleanAiText(raw) {
+    // Remove HTML tags, markdown artifacts, and trim
+    let s = String(raw || '').replace(/<[^>]*>/g, '').trim();
+    
+    // Remove common AI prefix bugs (e.g., "Bot Name: ")
+    s = s.replace(/^(NPC|Bot|Assistant)\s*:\s*/i, '');
+    
+    return s;
+}
+
+function isValidLine(s) {
+    if (!s || s.length < 2 || s.length > 200) return false;
+    
+    // Catch common model breakages
+    if (/\[error|<start_|<\|im_|function_call|as an ai language model/i.test(s)) {
+        return false; 
+    }
+    
+    return true;
+}
+
+// Usage inside your promise chain:
+const rawText = await task.promise;
+const cleaned = cleanAiText(rawText);
+
+if (!isValidLine(cleaned)) {
+    throw new Error('Invalid AI generation'); // Will trigger your fallback catch()
+}
+</code></pre>
+        </section>
+
+        <section id="api">
+            <h2>API Reference Overview</h2>
+            
+            <div class="callout">
+                <h4><code>new BringYourOwnBrainWeb(options)</code></h4>
+                <p>Creates the SDK instance.</p>
+                <ul>
+                    <li><code>container</code>: DOM element to mount the iframe button in.</li>
+                    <li><code>width</code> / <code>height</code>: CSS strings for the iframe dimensions.</li>
+                    <li><code>onState(state, message)</code>: Callback triggered on state changes (<code>'idle'</code>, <code>'ready'</code>, <code>'error'</code>).</li>
+                </ul>
+            </div>
+
+            <div class="callout">
+                <h4><code>brain.chat(messages, options) -> Promise</code></h4>
+                <p>Sends a chat completion request to the connected model.</p>
+                <ul>
+                    <li><code>messages</code>: Array of objects <code>[{role: 'system', content: '...'}, {role: 'user', content: '...'}]</code></li>
+                    <li><code>options.priority</code>: <code>'high'</code>, <code>'normal'</code>, or <code>'low'</code>.</li>
+                    <li><code>options.max_tokens</code>: Integer limit for the response.</li>
+                    <li><code>options.temperature</code>: Float between 0.0 and 2.0.</li>
+                    <li><code>options.onChunk(text)</code>: Callback for streaming tokens in real-time.</li>
+                </ul>
+                <p><strong>Returns:</strong> A Promise that resolves to a string. The Promise object has an attached <code>.cancel()</code> method to abort the request.</p>
+            </div>
+            
+            <div class="callout">
+                <h4><code>brain.open()</code></h4>
+                <p>Programmatically opens the BYOB hub connection modal without requiring a click inside the iframe. Best used alongside custom UI.</p>
+            </div>
+        </section>
+
+    </main>
+</body>
+</html>
