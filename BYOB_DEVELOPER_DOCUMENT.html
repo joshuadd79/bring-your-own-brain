@@ -1,4 +1,33 @@
-<!DOCTYPE html>
+<pre>Original SDK notes below.  The guide that follows shows how to use it to connect more efficiently.  V2 will be released in November 2026.
+ 
+    :
+<!-- 1. Load the BYOB Web SDK (No extension needed) -->
+<script src="https://bringyourownbrain.org/byob-web-sdk.js"></script>
+
+<!-- 2. Mount the connect button in your UI -->
+<div id="ai-connector"></div>
+
+<script>
+  const brain = new BringYourOwnBrainWeb({
+    container: document.getElementById('ai-connector'),
+    width: '220px',
+    height: '44px',
+    onState: (state) => console.log('BYOB State:', state)
+  });
+  
+  brain.mount();
+
+  // 3. Stream or await responses directly from the player's GPU:
+  async function talkToNPC(playerText) {
+    brain.onChunk = (token) => renderSpeechBubble(token);
+    
+    const reply = await brain.chat([
+      { role: 'system', content: 'You are a sarcastic goblin bouncer. Answer in 1 short sentence.' },
+      { role: 'user', content: playerText }
+    ], { max_tokens: 60, temperature: 0.7 });
+  }
+</script>
+</pre><!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
