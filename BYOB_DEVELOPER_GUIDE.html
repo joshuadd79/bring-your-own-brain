@@ -1,0 +1,737 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BYOBrain Web SDK - Developer Documentation</title>
+    <style>
+        :root {
+            --bg: #0f1115;
+            --surface: #1a1d24;
+            --surface-hover: #232730;
+            --text-main: #e2e8f0;
+            --text-muted: #94a3b8;
+            --primary: #00ffcc;
+            --primary-glow: rgba(0, 255, 204, 0.3);
+            --accent: #ff00aa;
+            --border: #334155;
+            --code-bg: #0b0c10;
+            --code-color: #6ee7b7;
+            --danger: #ef4444;
+            --success: #22c55e;
+            --font-main: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            background-color: var(--bg);
+            color: var(--text-main);
+            font-family: var(--font-main);
+            line-height: 1.6;
+            display: flex;
+            min-height: 100vh;
+        }
+
+        /* Layout */
+        .sidebar {
+            width: 280px;
+            background: var(--surface);
+            border-right: 1px solid var(--border);
+            padding: 2rem 1.5rem;
+            position: fixed;
+            height: 100vh;
+            overflow-y: auto;
+        }
+
+        .main-content {
+            margin-left: 280px;
+            padding: 4rem 6rem;
+            max-width: 1000px;
+            width: 100%;
+        }
+
+        /* Typography */
+        h1 { font-size: 2.5rem; color: var(--primary); margin-bottom: 0.5rem; text-shadow: 0 0 20px var(--primary-glow); }
+        h2 { font-size: 1.75rem; margin: 3rem 0 1.5rem; padding-bottom: 0.5rem; border-bottom: 1px solid var(--border); color: #fff; }
+        h3 { font-size: 1.25rem; margin: 2rem 0 1rem; color: #fff; }
+        p { margin-bottom: 1.25rem; color: var(--text-muted); font-size: 1.05rem; }
+        strong { color: var(--text-main); }
+        
+        /* Links & Nav */
+        a { color: var(--primary); text-decoration: none; transition: color 0.2s; }
+        a:hover { color: #fff; }
+        
+        .sidebar-nav { list-style: none; margin-top: 2rem; }
+        .sidebar-nav li { margin-bottom: 0.5rem; }
+        .sidebar-nav a { 
+            display: block; 
+            padding: 0.5rem 1rem; 
+            color: var(--text-muted); 
+            border-radius: 6px; 
+            font-weight: 500;
+        }
+        .sidebar-nav a:hover { background: var(--surface-hover); color: var(--primary); }
+        
+        .logo { font-size: 1.5rem; font-weight: 800; color: #fff; letter-spacing: -0.5px;}
+        .logo span { color: var(--primary); }
+
+        /* Code Blocks */
+        pre {
+            background: var(--code-bg);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1.25rem;
+            overflow-x: auto;
+            margin: 1.5rem 0;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.2);
+        }
+        code {
+            font-family: var(--font-mono);
+            font-size: 0.9rem;
+            color: var(--code-color);
+        }
+        p code, li code {
+            background: var(--surface);
+            padding: 0.2rem 0.4rem;
+            border-radius: 4px;
+            border: 1px solid var(--border);
+            color: var(--primary);
+            font-size: 0.9em;
+        }
+
+        /* Callouts / Best Practices */
+        .callout {
+            background: var(--surface);
+            border-left: 4px solid var(--accent);
+            padding: 1.5rem;
+            border-radius: 0 8px 8px 0;
+            margin: 2rem 0;
+        }
+        .callout h4 { margin-bottom: 0.5rem; color: var(--accent); font-size: 1.1rem; }
+        .callout p:last-child { margin-bottom: 0; }
+
+        .callout.success { border-color: var(--success); }
+        .callout.success h4 { color: var(--success); }
+
+        .pill {
+            display: inline-block;
+            background: rgba(0, 255, 204, 0.1);
+            color: var(--primary);
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            font-family: var(--font-mono);
+            margin-right: 8px;
+            border: 1px solid var(--primary);
+        }
+
+        .callout.danger { border-color: var(--danger); }
+        .callout.danger h4 { color: var(--danger); }
+        table { width:100%; border-collapse: collapse; margin: 1.5rem 0; font-size: .95rem; }
+        th, td { text-align:left; vertical-align: top; padding: .6rem .75rem; border-bottom: 1px solid var(--border); color: var(--text-muted); }
+        th { color:#fff; }
+        td:first-child { color: var(--danger); }
+        ul, ol { margin: 0 0 1.25rem 1.5rem; color: var(--text-muted); }
+        li { margin-bottom: .4rem; }
+        /* Responsive */
+        @media (max-width: 1024px) {
+            .sidebar { display: none; }
+            .main-content { margin-left: 0; padding: 2rem; max-width: 100%; }
+        }
+    </style>
+</head>
+<body>
+
+    <aside class="sidebar">
+        <div class="logo">BYO<span>Brain</span> SDK</div>
+        <ul class="sidebar-nav">
+            <li><a href="#intro">Introduction</a></li>
+            <li><a href="#ai-rules">For AI Assistants</a></li>
+            <li><a href="#philosophy">The Golden Rules</a></li>
+            <li><a href="#setup">1. Quick Start</a></li>
+            <li><a href="#how">2. How It Works</a></li>
+            <li><a href="#protocol">3. The Protocol</a></li>
+            <li><a href="#engine">4. Engine Behaviour</a></li>
+            <li><a href="#implement">5. Implementing the Protocol</a></li>
+            <li><a href="#healthy">6. Healthy Non-Blocking Handling</a></li>
+            <li><a href="#non-blocking">7. Safe Request Wrapper</a></li>
+            <li><a href="#priorities">8. Priorities</a></li>
+            <li><a href="#cancellation">9. Cancellation</a></li>
+            <li><a href="#streaming">10. Streaming UI</a></li>
+            <li><a href="#precooking">11. Pre-cooking</a></li>
+            <li><a href="#small-models">12. Small Models & CPU</a></li>
+            <li><a href="#validation">13. Validation</a></li>
+            <li><a href="#antipatterns">14. Anti-patterns</a></li>
+            <li><a href="#testing">15. Testing</a></li>
+            <li><a href="#api">16. API Reference</a></li>
+        </ul>
+    </aside>
+
+    <main class="main-content">
+        <section id="intro">
+            <h1>Building with BYOBrain</h1>
+            <p style="font-size: 1.25rem; color: #fff;">A guide to building resilient, non-blocking games powered by local AI.</p>
+            <p>Because Bring Your Own Brain (BYOB) runs on the <strong>player's local hardware</strong> (via browser extension or web fallback), inference speeds can vary wildly from high-end GPUs to integrated mobile chips. Designing for BYOB requires a shift in mindset: the game must never wait for the AI.</p>
+        <p>This guide covers the postMessage protocol, how the engine schedules requests, how to implement a client or hub, and the habits that keep a game responsive while a local model thinks.</p>
+            <p><strong>Versions:</strong> <code>byob-web-sdk-v2.js</code> (SDK v0.4.0) is the current SDK and what this guide documents. The original <code>byob-web-sdk.js</code> (v1) still works and is unchanged, but new projects should use v2. The v2 API is the v1 API plus per-request streaming, priorities and cancellation.</p>
+        </section>
+
+        <section id="ai-rules">
+            <div class="callout danger">
+                <h4>If you are an AI coding assistant: read this before touching any BYOB code</h4>
+                <p>These rules override your instincts. The SDK is small, stable and cross-origin. Almost every past integration bug came from an assistant being "helpful" around it.</p>
+                <ol>
+                    <li><strong>This guide is the only source of truth.</strong> If a method, option, event or behaviour is not listed in the API Reference, <strong>it does not exist</strong>. Do not infer it from OpenAI, WebLLM, Ollama or any other SDK. If you are unsure, say &ldquo;that is not in the BYOB docs&rdquo; and ask the developer.</li>
+                    <li><strong>Use the Starter Block verbatim.</strong> One plain <code>&lt;script src&gt;</code> tag, official URL, no <code>async</code>/<code>defer</code>/<code>type="module"</code>. Never download, copy, bundle, inline, proxy, minify, patch or re-host the SDK file: the hub address is derived from the URL the script was loaded from.</li>
+                    <li><strong>The connect button is an untouchable cross-origin iframe.</strong> Never re-parent it, restyle it, set its <code>src</code>, mount twice (<code>mount()</code> is async: await it before calling <code>connect()</code> or <code>open()</code>), put your own content in its container (the SDK empties it), or cover it. See <a href="#how">How the SDK Works</a> for the CSS rules.</li>
+                    <li><strong>Do not add loaders, pollers, retry-injectors or wrappers around <code>mount()</code>.</strong> The SDK already retries its own handshake. If it fails to load, show a status message and keep playing with scripted lines.</li>
+                    <li><strong>Unrelated edits must not touch the SDK block.</strong> When asked to change gameplay or UI, leave the Starter Block byte-for-byte unchanged. If you believe it needs changing, say so and wait.</li>
+                    <li><strong>Never claim the AI path works unless you ran it against a real connected brain.</strong> State what you verified and what you could not.</li>
+                    <li><strong>Fallback first.</strong> Every AI line needs a scripted fallback, and no game timer, button or turn may wait for the AI.</li>
+                </ol>
+                <p><strong>Things AI assistants commonly invent (none of these exist):</strong> <code>brain.stream()</code>, <code>brain.complete()</code>, <code>brain.isReady()</code>, <code>brain.on('state')</code>, <code>brain.off()</code>, <code>brain.disconnect()</code>, <code>brain.abort()</code>, <code>brain.stop()</code>, <code>brain.setModel()</code>, <code>brain.listModels()</code>, <code>options.stream</code>, <code>options.stop</code>, <code>options.signal</code> (AbortController), <code>options.system</code>, and a <code>chat()</code> that resolves to an object (it resolves to a <strong>string</strong>).</p>
+            </div>
+        </section>
+
+        <section id="philosophy">
+            <div class="callout success">
+                <h4>The Golden Rules of BYOB Design</h4>
+                <p><strong>1. Fallback is King:</strong> Your game must be 100% playable without AI. If the model is slow, offline, or produces gibberish, the game should instantly fall back to standard scripted lines.</p>
+                <p><strong>2. The Player Never Waits:</strong> Player actions (attacking, moving, using items) must resolve instantly and must never be gated on the AI. Cancel generation when its <em>context ends</em> (combat ends, the NPC leaves, a menu closes, the scene changes), not on every keypress. A line that is still streaming while the player acts is fine.</p>
+                <p><strong>3. Never Block the Event Loop:</strong> The game state should continue ticking while the AI thinks. Wrap requests in timeouts.</p>
+            </div>
+        </section>
+
+        <section id="setup">
+            <h2>1. Quick Start: the Starter Block</h2>
+            <p>Copy this block verbatim. It loads the SDK as a classic script, mounts the connect button once, and records the connection state. Everything else in your game only <em>reads</em> <code>brain</code> and <code>aiReady()</code>.</p>
+            <pre><code>&lt;!-- Load the SDK: plain classic script, official URL, no async/defer/module --&gt;
+&lt;script src="https://bringyourownbrain.org/byob-web-sdk-v2.js"&gt;&lt;/script&gt;
+
+&lt;!-- Container for the connect button: keep it a plain, unstyled block --&gt;
+&lt;div id="ai-connector"&gt;&lt;/div&gt;
+&lt;div id="ai-status"&gt;Loading AI…&lt;/div&gt;
+
+&lt;script&gt;
+  // === BYOB SDK START: copy verbatim, do not modify ===
+  var brain = null, byobState = 'idle', byobMsg = '', byobHeard = false;
+  function aiReady() { return !!brain &amp;&amp; byobState === 'ready'; }
+  function showStatus() {
+    document.getElementById('ai-status').textContent =
+      aiReady() ? 'Local AI connected' : (byobMsg || 'Press the green button to connect your local AI');
+  }
+  if (window.BringYourOwnBrainWeb) {
+    brain = new BringYourOwnBrainWeb({
+      container: document.getElementById('ai-connector'),
+      width: '220px', height: '44px',
+      onState: function (state, message) {      // 'idle' | 'ready' | 'error'
+        byobHeard = true; byobState = state; byobMsg = (state === 'error') ? (message || 'error') : '';
+        showStatus();
+      }
+    });
+    brain.mount();                              // async (returns a Promise). Call ONCE; don't call connect()/open() until it resolves.
+  }
+  setTimeout(function () {                      // hub never answered: offline, blocked or wrong URL
+    if (!byobHeard) { byobMsg = brain ? 'Cannot reach bringyourownbrain.org' : 'AI SDK failed to load'; showStatus(); }
+  }, 6000);
+  showStatus();
+  // === BYOB SDK END ===
+&lt;/script&gt;</code></pre>
+            <p>Prefer the <code>BringYourOwnBrainWebV2</code> global if your page might also load the v1 SDK: v2 always defines it, but only claims the plain <code>BringYourOwnBrainWeb</code> name when v1 is absent. Never load both.</p>
+        </section>
+
+        <section id="how">
+            <h2>2. How It Works</h2>
+            <p>Verified against SDK v0.4.0 and the extension source. Nothing here is inferred.</p>
+            <pre><code>Game page --(SDK)--&gt; iframe (the "hub") --&gt; extension service worker --&gt; offscreen engine (model on GPU/CPU)
+   ^                    |  web hub (bringyourownbrain.org) OR extension hub (chrome-extension://ID/web/connect.html)
+   +---- postMessage ---+  The model never runs inside your page.</code></pre>
+            <ul>
+                <li><strong>Choosing a hub.</strong> <code>await brain.mount()</code> first probes for the extension (a <code>fetch</code> of <code>chrome-extension://ID/web/ping.txt</code>, 400 ms timeout per ID). Found: the extension hub is used (offline capable, shared models). Not found, or the page&rsquo;s CSP blocks the probe: the website hub is used. <code>brain.mode</code> (<code>'extension'</code> | <code>'web'</code>) is only final after <code>mount()</code> resolves.</li>
+                <li><strong><code>mount()</code> is async.</strong> <code>brain.iframe</code> does not exist until the probe finishes (up to ~0.4 s). Calling <code>connect()</code> or <code>open()</code> before it resolves starts a second mount: without a container you get two iframes (two buttons); with a container the first iframe is thrown away and rebuilt. Call <code>mount()</code> once; <code>await</code> it if you need the iframe or mode.</li>
+                <li><strong>The SDK owns the container.</strong> It empties <code>container</code> (<code>innerHTML = ''</code>) and puts the iframe in it. With no <code>container</code> the iframe floats bottom-right. If the browser is offline and the extension is absent, no iframe is created: the container shows a short warning and <code>onState('error', 'Needs extension for offline use.')</code> fires.</li>
+                <li><strong>Handshake.</strong> The SDK sends <code>BYOB_HELLO</code> every 100 ms (about 5 s) until the hub sends any message. After that it stops. There is no further retry: do not re-mount.</li>
+                <li><strong>Origins are checked both ways.</strong> The SDK ignores messages whose <code>source</code> is not its iframe or whose <code>origin</code> is not the hub&rsquo;s. The hub accepts a parent on <code>http(s)</code> or on a <code>file://</code> page (origin <code>'null'</code>, replied to with target <code>'*'</code>).</li>
+                <li><strong>Functions cannot cross postMessage.</strong> The SDK removes <code>onChunk</code> from <code>options</code> before sending. Do not put other functions or non-cloneable values in <code>options</code>.</li>
+                <li><strong>Chunks are deltas.</strong> <code>onChunk(text)</code> gets only new text. A per-request <code>onChunk</code> beats the shared <code>brain.onChunk</code>; with more than one request in flight, always pass it per request.</li>
+                <li><strong><code>onState</code> runs synchronously inside the SDK&rsquo;s message handler.</strong> Keep it short and never let it throw.</li>
+                <li><strong>The connect UI expands the iframe full screen</strong> (<code>position: fixed; inset: 0; z-index: 2147483647</code>) and collapses it later. No ancestor of the container may use <code>transform</code>, <code>filter</code>, <code>perspective</code>, <code>contain</code> or <code>will-change</code> (the fixed overlay would be clipped), and none may be a low-<code>z-index</code> stacking context beneath your overlays. Start your own overlays <em>below</em> the connector.</li>
+                <li><strong>Loading.</strong> The hub URL is derived from <code>document.currentScript.src</code>, so load the SDK as a classic script from <code>bringyourownbrain.org</code>. Loading it twice is harmless (the second copy exits).</li>
+            </ul>
+        </section>
+
+        <section id="protocol">
+            <h2>3. The Protocol (postMessage)</h2>
+            <p>Both hubs speak the same protocol, so the SDK and your game cannot tell them apart. All messages are plain objects with a <code>type</code> string.</p>
+            <h3>Parent page &rarr; hub</h3>
+            <table>
+                <tr><th>type</th><th>fields</th><th>meaning</th></tr>
+                <tr><td>BYOB_HELLO</td><td>&mdash;</td><td>&ldquo;Are you there?&rdquo; Sent every 100 ms until the hub replies. The hub records the sender&rsquo;s origin and must answer; repeats must be harmless.</td></tr>
+                <tr><td>BYOB_OPEN</td><td>&mdash;</td><td>Start the connect flow now (<code>brain.open()</code>). Ignored if already expanded.</td></tr>
+                <tr><td>BYOB_CHAT</td><td><code>id</code>, <code>payload: { messages, ...options }</code></td><td>Start a generation. <code>id</code> is unique per request. <code>payload</code> is the options object minus <code>onChunk</code>.</td></tr>
+                <tr><td>BYOB_CANCEL</td><td><code>id</code></td><td>Stop that request (running or queued). Unknown ids are ignored.</td></tr>
+            </table>
+            <h3>Hub &rarr; parent page</h3>
+            <table>
+                <tr><th>type</th><th>fields</th><th>meaning</th></tr>
+                <tr><td>BYOB_STATE</td><td><code>state</code>, <code>message?</code></td><td><code>'idle'</code> not connected or user backed out &middot; <code>'ready'</code> engine running and this site approved &middot; <code>'error'</code> (see <code>message</code>) &middot; <code>'denied'</code> user declined the notice or the &ldquo;Allow this site?&rdquo; prompt. <code>'ready'</code> can revert to <code>'idle'</code> (for example &ldquo;Forget this site&rdquo;).</td></tr>
+                <tr><td>BYOB_UI</td><td><code>action</code></td><td><code>'expand'</code> (iframe should go full screen) or <code>'collapse'</code> (back to the compact button). The SDK does the resizing.</td></tr>
+                <tr><td>BYOB_STREAM_EVENT</td><td><code>streamId</code>, <code>eventType</code>, <code>text</code></td><td><code>CHUNK</code> (<code>text</code> = new text only) &middot; <code>DONE</code> &middot; <code>ERROR</code> (<code>text</code> = message) &middot; <code>CANCELLED</code> (<code>text</code> = reason: <code>'cancelled'</code>, <code>'preempted'</code> or <code>'dropped'</code>).</td></tr>
+            </table>
+            <h3>Rules (what a conforming hub and client must do)</h3>
+            <ul>
+                <li><strong>Every request ends with exactly one terminal event</strong> (<code>DONE</code>, <code>ERROR</code> or <code>CANCELLED</code>). Nothing is ever left hanging. Clients may rely on this, but should still use a timeout.</li>
+                <li><code>streamId</code> equals the request <code>id</code>. Ignore events for ids you did not issue.</li>
+                <li>The client resolves with the concatenation of all <code>CHUNK</code> texts; the <code>text</code> of <code>DONE</code> is not used.</li>
+                <li>A request sent while the hub is not ready gets <code>ERROR</code> (&ldquo;Not connected&hellip;&rdquo;). The SDK also rejects locally, without sending anything, unless <code>state === 'ready'</code>.</li>
+                <li>Check <code>event.source</code> and <code>event.origin</code> on every incoming message, in both directions. Never use <code>'*'</code> as target except for a <code>file://</code> parent (origin <code>'null'</code>).</li>
+            </ul>
+            <h3>Typical sequence</h3>
+            <pre><code>SDK:  mount() -&gt; probe extension -&gt; create iframe -&gt; BYOB_HELLO (every 100 ms)
+Hub:  BYOB_UI collapse, BYOB_STATE idle|ready        (approved site: engine starts itself, then 'ready')
+User: clicks button -&gt; Hub: BYOB_UI expand -&gt; 18+ notice -&gt; "Allow this site?" -&gt; model download -&gt; BYOB_STATE ready -&gt; BYOB_UI collapse
+Game: chat() -&gt; BYOB_CHAT {id}      Hub: CHUNK, CHUNK, ... DONE   (or ERROR / CANCELLED)
+Game: p.cancel() -&gt; BYOB_CANCEL {id}   Hub: CANCELLED 'cancelled'</code></pre>
+        </section>
+
+        <section id="engine">
+            <h2>4. Engine Behaviour (what happens behind the hub)</h2>
+            <p>Verified in the extension source. These are hard facts you can design around.</p>
+            <table>
+                <tr><th>Topic</th><th>Behaviour</th></tr>
+                <tr><td>Concurrency</td><td>One model on one device: <strong>one generation at a time.</strong> Everything else waits in a queue.</td></tr>
+                <tr><td>Priorities</td><td><code>'low'</code>=1, <code>'normal'</code>=2 (default), <code>'high'</code>=3 (a number 1&ndash;3 also works). A higher-priority request <strong>preempts</strong> a running lower one (it ends with <code>CANCELLED 'preempted'</code>). Within the queue, higher priority goes first, then oldest first.</td></tr>
+                <tr><td>Queue caps</td><td>Per priority: low 2, normal 4, high 12. Beyond the cap the <strong>oldest waiting</strong> request of that priority is dropped (<code>CANCELLED 'dropped'</code>). Spamming requests silently discards your older ones.</td></tr>
+                <tr><td>Limits</td><td>Only the <strong>last 64 messages</strong> are used; each message is cut at <strong>32,000 characters</strong>; <code>max_tokens</code> is capped at <strong>1,024</strong> and defaults to <strong>120</strong> if omitted; <code>temperature</code> defaults to 0.7.</td></tr>
+                <tr><td>Safety text</td><td>A short generic safety paragraph is appended to your system message (the player can turn this off). Budget a few dozen tokens for it; it does not forbid in-character insults.</td></tr>
+                <tr><td>Roles</td><td><code>developer</code> maps to <code>system</code>, <code>model</code> to <code>assistant</code>, anything unknown to <code>user</code>.</td></tr>
+                <tr><td>Slow starts</td><td>If the engine slept (idle about 10 min) the next request wakes it first. If the engine does not accept a request within <strong>8 s</strong> the hub sends <code>ERROR 'The local AI engine did not respond. Try again.'</code> Use generous timeouts and always have a fallback.</td></tr>
+                <tr><td>Tab closed</td><td>Closing the game tab cancels its running request.</td></tr>
+                <tr><td>Approval</td><td>Per site (origin; <code>file://</code> pages are stored as <code>'file://'</code>). An approved site starts the engine silently; a new site must go through the notice and consent first.</td></tr>
+                <tr><td>Privacy</td><td>Conversations are not stored; only local counters (tokens, bytes not re-downloaded) are kept for the player&rsquo;s receipt.</td></tr>
+            </table>
+        </section>
+
+        <section id="implement">
+            <h2>5. Implementing the Protocol Yourself</h2>
+            <p>Almost everyone should use the SDK. If you must talk to a hub directly (a non-browser host, a test harness, or your own hub), the minimal client below is the whole protocol. For the browser, loading the real SDK is strictly better because it also finds the extension.</p>
+            <pre><code>// Minimal client. HUB must be the exact hub URL; ORIGIN its origin.
+const HUB = 'https://bringyourownbrain.org/connect-v2.html', ORIGIN = new URL(HUB).origin;
+const frame = document.createElement('iframe'); frame.src = HUB; document.getElementById('slot').appendChild(frame);
+let state = 'idle', heard = false;
+
+addEventListener('message', (e) =&gt; {
+  if (e.source !== frame.contentWindow || e.origin !== ORIGIN) return;   // both checks, always
+  const d = e.data || {}; heard = true;
+  if (d.type === 'BYOB_STATE') state = d.state;                          // 'idle' | 'ready' | 'error' | 'denied'
+  if (d.type === 'BYOB_UI') { /* expand: make the iframe fixed full screen; collapse: restore the compact size */ }
+});
+
+let tries = 0;
+const hello = setInterval(() =&gt; {                                         // handshake: repeat until the hub answers
+  if (heard || tries++ &gt; 50) return clearInterval(hello);
+  frame.contentWindow &amp;&amp; frame.contentWindow.postMessage({ type: 'BYOB_HELLO' }, ORIGIN);
+}, 100);
+
+function chat(messages, options, onChunk) {
+  const id = 'req_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7);
+  const p = new Promise((resolve, reject) =&gt; {
+    if (state !== 'ready') return reject(new Error('not connected yet'));
+    let text = '';
+    const on = (e) =&gt; {
+      const d = e.data || {};
+      if (e.source !== frame.contentWindow || e.origin !== ORIGIN || d.type !== 'BYOB_STREAM_EVENT' || d.streamId !== id) return;
+      if (d.eventType === 'CHUNK') { text += d.text; onChunk &amp;&amp; onChunk(d.text); return; }
+      removeEventListener('message', on);                                 // every other event is terminal
+      if (d.eventType === 'DONE') resolve(text);
+      else if (d.eventType === 'ERROR') reject(new Error(d.text || 'Inference error'));
+      else { const err = new Error('cancelled'); err.cancelled = true; err.reason = d.text; err.partial = text; reject(err); }
+    };
+    addEventListener('message', on);
+    frame.contentWindow.postMessage({ type: 'BYOB_CHAT', id, payload: { messages, ...options } }, ORIGIN);
+  });
+  p.cancel = () =&gt; frame.contentWindow.postMessage({ type: 'BYOB_CANCEL', id }, ORIGIN);
+  return p;
+}</code></pre>
+            <p>Implementing a <strong>hub</strong> instead? Follow the rules in section 3 and: answer every <code>BYOB_HELLO</code> with <code>BYOB_UI</code> and <code>BYOB_STATE</code>; validate the parent&rsquo;s origin and remember it; end every request with exactly one terminal event; map engine failures to <code>ERROR</code>; cancel running work when asked, when the parent goes away, or when a more important request arrives.</p>
+        </section>
+
+        <section id="healthy">
+            <h2>6. Healthy Non-Blocking Handling</h2>
+            <p>The model shares the player&rsquo;s hardware with your game, so a healthy integration treats AI text as a <em>garnish that may arrive late, early, or never</em>. These are the habits that make that work.</p>
+            <ol>
+                <li><strong>Two worlds, one direction.</strong> Game logic never reads AI state to decide what happens next. The AI layer reads game state and decorates it. Attacks resolve, doors open and timers tick whether or not any text exists.</li>
+                <li><strong>Gate on <code>aiReady()</code>, not on hope.</strong> Treat <code>'idle'</code>, <code>'error'</code> and <code>'denied'</code> as &ldquo;scripted mode&rdquo; and keep the status text honest. Re-check before every request: <code>'ready'</code> can revert.</li>
+                <li><strong>One request per speaker, with a gap.</strong> The engine runs one generation at a time and drops the oldest queued request beyond the cap, so a speaker should never have two in flight. Start the next after the last finishes plus a gap (3 s, or as long as the last took).</li>
+                <li><strong>Priority matches visibility.</strong> What the player is looking at is <code>normal</code> or <code>high</code>. Background pre-cooking is <code>low</code>, expecting to be dropped.</li>
+                <li><strong>Cancel on context end, not on every action.</strong> When combat ends, an NPC leaves or a menu closes, cancel. While the context lives, let the line finish even if the player keeps acting.</li>
+                <li><strong>Every path has a fallback line</strong>: timeout, <code>ERROR</code>, <code>CANCELLED</code>, invalid text, offline, not approved.</li>
+                <li><strong>Start requests off the critical path:</strong> after rendering, via <code>setTimeout(fn, 1)</code>.</li>
+                <li><strong>Stream through a queue</strong> (section 10) so bursts look smooth, and show &ldquo;&hellip;&rdquo; while waiting for the first token.</li>
+            </ol>
+            <p>A reference implementation of habits 2&ndash;6 and 8:</p>
+            <pre><code>// One "speaker" (an enemy, an NPC). Never has two requests in flight; always ends with a line.
+function createSpeaker(el, getMessages, fallbackLines, opts) {
+  let task = null, alive = true, timer = null, token = 0;
+  opts = Object.assign({ priority: 'normal', max_tokens: 48, temperature: 0.9, timeoutMs: 20000, gapMs: 3000 }, opts);
+
+  function show(text) { if (alive) el.textContent = text; }
+  function scripted() { return fallbackLines[Math.floor(Math.random() * fallbackLines.length)]; }
+
+  function speakOnce(done) {
+    const my = ++token;
+    if (!aiReady()) { show(scripted()); return done(); }          // scripted mode
+    show('…');
+    let queue = '', first = true, final = null, finished = false;
+    const drain = setInterval(() =&gt; {
+      if (my !== token || !alive) return clearInterval(drain);    // stale: a newer line or the context ended
+      if (queue) { const n = Math.max(1, Math.ceil(queue.length / 10)); el.textContent += queue.slice(0, n); queue = queue.slice(n); }
+      else if (finished) { clearInterval(drain); show(final || scripted()); done(); }
+    }, 20);
+    task = askBrainSafe(getMessages(), Object.assign({}, opts, {
+      onChunk: (t) =&gt; { if (my !== token) return; if (first) { first = false; el.textContent = ''; } queue += t; }
+    }), opts.timeoutMs);
+    task.promise
+      .then((raw) =&gt; { const s = cleanAiText(raw); final = isValidLine(s) ? s : null; })
+      .catch((err) =&gt; { const s = cleanAiText(err &amp;&amp; err.partial); final = isValidLine(s) ? s : null; })
+      .finally(() =&gt; { task = null; finished = true; });
+  }
+
+  function loop() {
+    if (!alive) return;
+    const t0 = Date.now();
+    speakOnce(() =&gt; { timer = setTimeout(loop, Math.max(opts.gapMs, Date.now() - t0)); });
+  }
+  return {
+    start() { timer = setTimeout(loop, 1); },                      // off the critical path
+    stop()  { alive = false; token++; clearTimeout(timer); if (task) task.cancel(); }   // call when the context ends
+  };
+}</code></pre>
+        </section>
+
+        <section id="non-blocking">
+            <h2>7. The Safe Request Wrapper</h2>
+            <p>Do not just <code>await brain.chat()</code>. Instead, wrap requests with a <code>Promise.race</code> timeout so your game doesn't hang if the user's GPU is overloaded.</p>
+            <pre><code>/**
+ * Safe, cancellable wrapper for AI requests.
+ * @param {Array} msgs - Messages array
+ * @param {Object} opts - BYOB options (priority, max_tokens, etc)
+ * @param {Number} timeoutMs - Max time to wait before bailing
+ */
+function askBrainSafe(msgs, opts, timeoutMs = 8000) {
+    const result = { cancel: () =&gt; {}, promise: null };
+    
+    try {
+        // 1. Initiate request
+        const p = brain.chat(msgs, opts);
+        
+        // 2. Expose the native cancel method
+        result.cancel = () =&gt; { try { p.cancel(); } catch(e){} };
+        
+        // 3. Setup Race Condition for Timeout
+        let timer;
+        const to = new Promise((_, reject) =&gt; {
+            timer = setTimeout(() =&gt; {
+                result.cancel(); // kill generation
+                reject(new Error('timeout'));
+            }, timeoutMs);
+        });
+
+        // 4. Return the raced promise
+        result.promise = Promise.race([p, to]).finally(() =&gt; clearTimeout(timer));
+    } catch(e) {
+        result.promise = Promise.reject(e);
+    }
+    
+    return result;
+}</code></pre>
+        </section>
+
+        <section id="priorities">
+            <h2>8. Priorities & Compute Management</h2>
+            <p>The BYOB engine queues requests by priority. A higher-priority request preempts a lower one that is running, and low-priority requests are dropped first. The affected promise rejects with <code>err.cancelled</code> and <code>err.reason</code> of <code>'preempted'</code> or <code>'dropped'</code>. <code>'normal'</code> is the default. Only one generation runs at a time, and each priority has a queue cap (low 2, normal 4, high 12): beyond it the oldest waiting request is dropped.</p>
+            <ul>
+                <li><span class="pill">high</span> <strong>Direct Player Interaction:</strong> The player clicked a character and is waiting for a response. Maximize tokens/speed.</li>
+                <li><span class="pill">normal</span> <strong>Reactions the player can see:</strong> an enemy taunting during combat, an NPC reacting to a bump. Anything on screen right now belongs here or in <code>high</code>, never in <code>low</code>.</li>
+                <li><span class="pill">low</span> <strong>Invisible background work:</strong> pre-cooking idle lines nobody is looking at. Will be dropped automatically if a high priority task comes in.</li>
+            </ul>
+
+            <pre><code>// The player is waiting for this:
+const reply = brain.chat(messages, { 
+    priority: 'high', 
+    max_tokens: 40,
+    temperature: 0.8
+});
+
+// A background NPC is just thinking:
+const ambient = brain.chat(messages, { 
+    priority: 'low', 
+    max_tokens: 20 
+});</code></pre>
+        </section>
+
+        <section id="cancellation">
+            <h2>9. Cancellation (Stop the GPU)</h2>
+            <p>If an NPC is talking or generating text, and the player walks away or attacks them, <strong>you must cancel the promise</strong>. <code>cancel()</code> asks the hub to stop; the promise then rejects with <code>err.cancelled</code> once the hub confirms. A request still waiting in the queue is dropped at once, and a running generation stops promptly, freeing the player&rsquo;s hardware.</p>
+            <pre><code>let currentAiTask = null;
+
+function chatWithNPC(npc, text) {
+    // If they were already generating something else, kill it!
+    if (currentAiTask) {
+        currentAiTask.cancel(); 
+    }
+
+    currentAiTask = askBrainSafe([...], { priority: 'high' }, 5000);
+
+    currentAiTask.promise
+        .then(reply =&gt; npc.say(reply))
+        .catch(err =&gt; {
+            // Handle timeout or manual cancellation gracefully
+            if (err.cancelled) return; 
+            npc.say("I lost my train of thought..."); // Fallback!
+        })
+        .finally(() =&gt; currentAiTask = null);
+}
+
+// When the player triggers combat:
+function startCombat() {
+    if (currentAiTask) currentAiTask.cancel();
+}</code></pre>
+        </section>
+
+        <section id="streaming">
+            <h2>10. Streaming UI: the Typewriter Queue</h2>
+            <p>Chunks can arrive in bursts, especially on slow hardware. Never write them straight to the screen. Push each chunk into a queue and drain it on a short timer: a few characters per tick, faster when the queue grows. The text then flows token by token even when delivery is bursty. This is the pattern used by the official chat demo and by the Soul Rogue game.</p>
+            <pre><code>// Streams one line into `el`. Returns the task so the caller can cancel it when the context ends.
+// onDone(text | null): final cleaned text, or null if it was invalid (caller shows a scripted line).
+function streamInto(el, msgs, opts, onDone) {
+  let queue = '', done = false, final = null, started = false;
+  el.textContent = '…';                                   // "thinking" until the first token arrives
+
+  const timer = setInterval(function () {
+    if (queue) {
+      const n = Math.max(1, Math.ceil(queue.length / 10));   // drains faster when it falls behind
+      el.textContent += queue.slice(0, n);
+      queue = queue.slice(n);
+      // Optional: validate the text so far and bail out early
+      // if (!isValidLine(el.textContent)) { task.cancel(); queue = ''; }
+    } else if (done) {
+      clearInterval(timer);
+      if (final) el.textContent = final;                  // replace with the cleaned version
+      if (onDone) onDone(final);
+    }
+  }, 20);
+
+  const task = askBrainSafe(msgs, Object.assign({}, opts, {
+    onChunk: function (t) {                               // per request, never the shared brain.onChunk
+      if (!started) { started = true; el.textContent = ''; }
+      queue += t;                                         // chunks are deltas: append
+    }
+  }), 20000);
+
+  task.promise
+    .then(function (raw) { const s = cleanAiText(raw); final = isValidLine(s) ? s : null; })
+    .catch(function (err) { const s = cleanAiText(err &amp;&amp; err.partial); final = isValidLine(s) ? s : null; })
+    .finally(function () { done = true; });
+  return task;
+}
+
+// Always use textContent for model output, never innerHTML.</code></pre>
+            <ul>
+                <li>Start the request with <code>setTimeout(fn, 1)</code> after the screen has updated, so request setup never delays a game frame or timer.</li>
+                <li>Only one chatter request in flight per speaker. Start the next one after the last finishes, plus a gap (at least 3 s, or as long as the last one took).</li>
+                <li>Guard against stale updates: if the scene changed while text was streaming, stop the timer and ignore late chunks.</li>
+            </ul>
+        </section>
+
+        <section id="precooking">
+            <h2>11. Pre-cooking & Caching (The Ambient Secret)</h2>
+            <p>Don't generate ambient idle lines on the fly. When the game engine detects the player is idle, use <code>low</code> priority to "pre-cook" lines and store them in an array. When an NPC needs to speak idly, pop a line from the array instantly.</p>
+            
+            <pre><code>// Run this inside your game tick/loop:
+function ambientTick() {
+    // Only generate if we aren't busy and the player hasn't done anything recently
+    if (isAiBusy || playerIsActive) return;
+
+    const idleNPCs = getNPCsWithEmptyCache();
+    if (idleNPCs.length &gt; 0) {
+        const target = idleNPCs[0];
+        
+        // Generate a line in the background
+        const task = askBrainSafe(
+            [{role: 'system', content: 'Generate a short idle thought.'}], 
+            { priority: 'low' }, 
+            12000 // give it plenty of time
+        );
+
+        task.promise.then(line =&gt; {
+            if (validateLine(line)) {
+                target.dialogueCache.push(line); // Store for later!
+            }
+        }).catch(() =&gt; { /* quietly fail */ });
+    }
+}
+
+// When the NPC actually needs to speak on screen:
+function npcIdleSpeak(npc) {
+    if (npc.dialogueCache.length &gt; 0) {
+        npc.say(npc.dialogueCache.shift()); // Instant delivery!
+    } else {
+        npc.say(npc.defaultScriptedLines[0]); // Scripted fallback
+    }
+}</code></pre>
+        </section>
+
+        <section id="small-models">
+            <h2>12. Small Models &amp; CPU</h2>
+            <p>Treat 0.5B&ndash;3B models as fast, forgetful improv actors, and expect the player&rsquo;s phone or laptop CPU to be the slowest target you will ever meet.</p>
+            <ul>
+                <li><strong>Keep the prompt tiny.</strong> The model must read the entire prompt before the first token, so a long few-shot prompt means seconds of silence on CPU. Aim for about 100 tokens: a 1&ndash;3 line system message, one short user line, and at most one short example line.</li>
+                <li><strong>Plain-language roleplay beats key:value templates.</strong> &ldquo;You are Cave Bat, a monster in a dark dungeon. Say ONE short line (max 15 words) to the hero.&rdquo; works. &ldquo;Persona: X. Style: Y. Mood: Z.&rdquo; makes tiny models explain the format instead of speaking.</li>
+                <li><strong>Tell it what it is not.</strong> Tiny chat models default to assistant mode (&ldquo;Hello, how can I help you today?&rdquo;). Add &ldquo;You are not an assistant. Never greet or offer help.&rdquo; and reject replies that still sound like one.</li>
+                <li><strong>Do not ask a model to be unintelligible.</strong> It will answer in English. Generate nonsense speech (slimes, animals) locally and use the same typewriter to display it.</li>
+                <li><strong><code>max_tokens</code></strong> about twice the expected word count (40&ndash;60 for one-liners); <strong>temperature</strong> 0.7&ndash;0.9 for chatter.</li>
+                <li><strong>Send only the last 6&ndash;10 messages</strong> of history.</li>
+                <li><strong>Show a &ldquo;thinking&rdquo; indicator</strong> (&hellip;) and keep the game running. Test on the slowest hardware you support; CPU and GPU can differ by 10&times;.</li>
+            </ul>
+        </section>
+
+        <section id="validation">
+            <h2>13. Data Validation</h2>
+            <p>Local AI models hallucinate. They might spit out Markdown, empty brackets, or system prompts. <strong>Never pipe AI text directly to your UI without cleaning it first.</strong> If validation fails, throw it away and use a scripted line.</p>
+            <pre><code>function cleanAiText(raw) {
+    // Remove HTML tags, markdown artifacts, and trim
+    let s = String(raw || '').replace(/&lt;[^&gt;]*&gt;/g, '').trim();
+    
+    // Remove common AI prefix bugs (e.g., "Bot Name: ")
+    s = s.replace(/^(NPC|Bot|Assistant)\s*:\s*/i, '');
+    
+    return s;
+}
+
+function isValidLine(s) {
+    if (!s || s.length &lt; 2 || s.length &gt; 200) return false;
+    
+    // Catch common model breakages
+    if (/\[error|&lt;start_|&lt;\|im_|function_call|as an ai language model|how can i (help|assist)|^\s*(hello|hi|hey)\b/i.test(s)) {
+        return false; 
+    }
+    
+    return true;
+}
+
+// Usage (inside an async function, or in a .then chain):
+async function lineFromBrain(task) {
+    const rawText = await task.promise;
+    const cleaned = cleanAiText(rawText);
+    if (!isValidLine(cleaned)) {
+        throw new Error('Invalid AI generation'); // triggers your fallback catch()
+    }
+    return cleaned;
+}
+</code></pre>
+        </section>
+
+        <section id="antipatterns">
+            <h2>14. Anti-patterns (Real Integration Failures)</h2>
+            <table>
+                <tr><th>Don&rsquo;t</th><th>What happens</th><th>Do instead</th></tr>
+                <tr><td>Load the SDK with <code>async</code>/<code>defer</code> and poll for the global</td><td>Empty box with no button until it happens to load</td><td>Plain classic <code>&lt;script src&gt;</code>; check the global once; show a status message</td></tr>
+                <tr><td>Re-inject the SDK or clear the container on failure</td><td>Duplicate iframes and message handlers</td><td>Leave it alone; show &ldquo;AI unavailable&rdquo; and play with scripted lines</td></tr>
+                <tr><td>Clip, transform or low-z-index the container&rsquo;s ancestors; cover the button with a full-screen overlay</td><td>Connect UI hidden, clipped or unclickable</td><td>Plain container; start overlays below it (see <a href="#how">How the SDK Works</a>)</td></tr>
+                <tr><td>Self-host or copy the SDK file</td><td>Hub URL is derived from the script URL and points to the wrong place</td><td>Always load from <code>https://bringyourownbrain.org/</code></td></tr>
+                <tr><td>Treat chunks as cumulative text</td><td>Duplicated, garbled output</td><td>Append each delta</td></tr>
+                <tr><td>Set <code>brain.onChunk</code> while several requests run</td><td>Streams from different requests mix</td><td>Pass <code>onChunk</code> per request</td></tr>
+                <tr><td>Delay game actions until the AI answers (timers, locked buttons)</td><td>The game freezes while the model computes</td><td>Resolve the game instantly; let the AI line arrive on its own</td></tr>
+                <tr><td>Start a request in the same tick as time-critical logic</td><td>Request setup can stall that tick</td><td><code>setTimeout(start, 1)</code> after rendering</td></tr>
+                <tr><td>Long few-shot prompts</td><td>Seconds of silence on CPU before the first token</td><td>About 100 tokens, one short example</td></tr>
+                <tr><td>Use <code>priority:'low'</code> for text the player is watching</td><td>Request is preempted or dropped</td><td><code>'normal'</code> or <code>'high'</code></td></tr>
+                <tr><td>Put functions (other than <code>onChunk</code>) in <code>options</code></td><td>postMessage cannot clone them</td><td>Plain JSON values only</td></tr>
+                <tr><td>No timeout, no cancel when the scene changes</td><td>The player&rsquo;s GPU keeps generating text nobody sees</td><td><code>askBrainSafe()</code> plus <code>cancel()</code> when the context ends</td></tr>
+                <tr><td>Put model text in <code>innerHTML</code></td><td>Injection risk</td><td><code>textContent</code></td></tr>
+                <tr><td>Call <code>mount()</code> and then <code>connect()</code>/<code>open()</code> right away</td><td><code>mount()</code> is async; the second call starts a second mount (two iframes when floating, a discarded and rebuilt iframe inside a container)</td><td>Call <code>mount()</code> once; <code>await</code> it before anything else</td></tr>
+                <tr><td>Put your own elements in the container</td><td>The SDK empties the container when it mounts</td><td>A dedicated, empty <code>&lt;div&gt;</code></td></tr>
+                <tr><td>Read <code>brain.iframe</code> or <code>brain.mode</code> straight after <code>mount()</code></td><td>They are not set until the extension probe finishes</td><td><code>await brain.mount()</code> first</td></tr>
+                <tr><td>Omit <code>max_tokens</code></td><td>Defaults to 120 and cuts long replies silently</td><td>Set it explicitly (maximum 1024)</td></tr>
+                <tr><td>Several requests per speaker at once</td><td>The engine is serial; past the queue cap the oldest request is dropped</td><td>One in flight per speaker, plus a gap</td></tr>
+                <tr><td>Heavy or throwing <code>onState</code> handler</td><td>It runs inside the SDK&rsquo;s message handler</td><td>Set a variable and update the UI, nothing more; wrap in <code>try/catch</code></td></tr>
+                <tr><td>Handle only <code>'ready'</code></td><td><code>'error'</code> and <code>'denied'</code> leave the UI saying &ldquo;connecting&rdquo; forever</td><td>Map every state to visible status text and scripted mode</td></tr>
+            </table>
+        </section>
+
+        <section id="testing">
+            <h2>15. Testing Without a GPU</h2>
+            <p>Point the SDK at a mock hub with the <code>hubUrl</code> option (this also disables the extension probe). The mock speaks the real protocol, so it exercises your state handling, streaming, cancellation and fallbacks without a model.</p>
+            <pre><code>&lt;!-- mock-hub.html (same origin as your test page) --&gt;
+&lt;script&gt;
+const jobs = {};
+addEventListener('message', (e) =&gt; {
+  const d = e.data || {}, send = (m) =&gt; parent.postMessage(m, e.origin);
+  if (d.type === 'BYOB_HELLO') { send({ type: 'BYOB_UI', action: 'collapse' }); send({ type: 'BYOB_STATE', state: 'ready' }); }
+  if (d.type === 'BYOB_CHAT') {
+    const words = 'Skreee! Fresh blood enters my cave, little hero!'.split(/(?&lt;= )/); let i = 0;
+    jobs[d.id] = setInterval(() =&gt; {
+      if (i &lt; words.length) send({ type: 'BYOB_STREAM_EVENT', streamId: d.id, eventType: 'CHUNK', text: words[i++] });
+      else { clearInterval(jobs[d.id]); send({ type: 'BYOB_STREAM_EVENT', streamId: d.id, eventType: 'DONE' }); }
+    }, 150);                                       // slow it down to feel CPU-speed streaming
+  }
+  if (d.type === 'BYOB_CANCEL') { clearInterval(jobs[d.id]); send({ type: 'BYOB_STREAM_EVENT', streamId: d.id, eventType: 'CANCELLED', text: 'cancelled' }); }
+});
+&lt;/script&gt;
+
+// In your test build:  new BringYourOwnBrainWeb({ container, hubUrl: '/mock-hub.html', onState })</code></pre>
+            <p>Then check each of these on purpose:</p>
+            <ul>
+                <li>Hub never answers (point <code>hubUrl</code> at a blank page): after 6 s the status says it cannot reach the hub and the game still plays.</li>
+                <li>States <code>'error'</code> and <code>'denied'</code>, and <code>'ready'</code> reverting to <code>'idle'</code> mid-session: scripted lines take over and nothing hangs.</li>
+                <li>Cancel mid-stream and change scene mid-stream: no late text appears in the new scene.</li>
+                <li>Two speakers at once: lines do not mix (per-request <code>onChunk</code>).</li>
+                <li>Slow hub (raise the mock&rsquo;s interval to 1 s): buttons and timers stay responsive. In Chrome DevTools, Performance &rarr; 6&times; CPU slowdown shows the frame cost of your own streaming code.</li>
+                <li>Offline with no extension: the container shows the SDK&rsquo;s warning and the game plays scripted.</li>
+            </ul>
+        </section>
+
+        <section id="api">
+            <h2>16. API Reference (complete)</h2>
+            <p>This is everything the SDK exposes. Anything not listed here does not exist.</p>
+
+            <div class="callout">
+                <h4><code>new BringYourOwnBrainWeb(options)</code></h4>
+                <ul>
+                    <li><code>container</code>: DOM element for the iframe. Omit to float bottom-right.</li>
+                    <li><code>width</code> / <code>height</code>: CSS strings for the button (defaults <code>'240px'</code> / <code>'52px'</code>; the demos use <code>'220px'</code> / <code>'44px'</code>).</li>
+                    <li><code>onState(state, message)</code>: <code>state</code> is <code>'idle'</code>, <code>'ready'</code>, <code>'error'</code> or <code>'denied'</code> (the player declined). Called synchronously from the SDK&rsquo;s message handler.</li>
+                    <li><code>onChunk(text)</code>: shared fallback stream handler (prefer per-request <code>onChunk</code>).</li>
+                    <li><code>hubUrl</code>, <code>useExtension</code>, <code>extensionId</code>: advanced hub selection. A custom <code>hubUrl</code> always wins over the extension. Leave unset normally.</li>
+                </ul>
+            </div>
+
+            <div class="callout">
+                <h4>Instance members</h4>
+                <ul>
+                    <li><code>await brain.mount()</code>: probes for the extension, empties the container and attaches the iframe. Returns a Promise (no value). Call once.</li>
+                    <li><code>brain.open()</code>: opens the connect flow now (starts a mount if none exists, so mount first). Use after <em>your own</em> Connect button was clicked.</li>
+                    <li><code>brain.connect()</code>: Promise that resolves <code>{success:true}</code> when the state becomes <code>'ready'</code>.</li>
+                    <li><code>brain.destroy()</code>: removes the iframe and rejects pending requests with a plain Error (&lsquo;bringYourOwnBrain was disconnected.&rsquo;, no <code>cancelled</code> flag). For teardown only.</li>
+                    <li><code>brain.state</code>, <code>brain.mode</code> (<code>'web'</code> | <code>'extension'</code>), <code>brain.viaExtension</code>, <code>brain.version</code>, <code>brain.iframe</code>, <code>brain.onChunk</code>, <code>brain.onState</code>.</li>
+                    <li><code>brain.ask</code>, <code>brain.generate</code>, <code>brain.prompt</code> are aliases of <code>brain.chat</code>.</li>
+                </ul>
+            </div>
+
+            <div class="callout">
+                <h4><code>brain.chat(messages, options) &rarr; Promise&lt;string&gt;</code></h4>
+                <p><code>messages</code> is an array of <code>{role, content}</code> (a plain string is treated as one user message). Rejects immediately if the brain is not <code>'ready'</code>.</p>
+                <ul>
+                    <li><code>options.priority</code>: <code>'high'</code> | <code>'normal'</code> (default) | <code>'low'</code>.</li>
+                    <li><code>options.onChunk(text)</code>: streamed delta text for this request.</li>
+                    <li><code>options.max_tokens</code>: default 120, capped at 1024. <code>options.temperature</code>: default 0.7. Other plain (cloneable) values are passed through.</li>
+                </ul>
+                <p><strong>Returns</strong> a Promise resolving to the full reply as a string, with <code>.id</code> and <code>.cancel()</code> attached. On cancellation it rejects with an Error where <code>err.cancelled === true</code>, <code>err.reason</code> is <code>'cancelled' | 'preempted' | 'dropped'</code>, and <code>err.partial</code> is the text received so far. Other failures reject with an ordinary Error (<code>err.message</code>). Messages you can meet: &lsquo;bringYourOwnBrain is not connected yet.&rsquo; (SDK, not ready), &lsquo;Not connected. Finish the bringYourOwnBrain connect steps first.&rsquo; (hub), &lsquo;The local AI engine did not respond. Try again.&rsquo; (no accept within 8 s), &lsquo;The local AI engine stopped unexpectedly.&rsquo;, &lsquo;No model is selected&hellip;&rsquo;, &lsquo;Model is not loaded.&rsquo;. Treat all of them as &ldquo;use the scripted line&rdquo;.</p>
+            </div>
+        </section>
+
+    </main>
+</body>
+</html>
